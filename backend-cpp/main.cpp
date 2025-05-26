@@ -48,7 +48,7 @@ void home(HttpRequest& req, HttpResponse& res) {
 			if (chats.size()) {
 				res.writeJSON(MessageUser(chats[chats.size() - 1]).to_json());
 			} else res.write("No messages yet");
-			printf("\e[38;5;49m%s checked messages\e[0m\n",
+			printf("\e[38;5;85m%s checked messages\e[0m\n",
 				   user.getName().c_str());
 			return;
 		}

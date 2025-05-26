@@ -41,14 +41,14 @@ void Server::start() {
 	client_addr_size = sizeof(struct sockaddr_in);
 
 	while (1) {
-		int client_socket_fd = accept(socket_fd, (struct sockaddr*)&client_addr,
+		client_socket_fd = accept(socket_fd, (struct sockaddr*)&client_addr,
 									  &client_addr_size);
 		if (client_socket_fd < 0) {
 			std::cerr << "Failed to accept client request." << std::endl;
 			exit(1);
 		}
 		// Create a new thread to handle the client
-		std::thread clientThread(handleClient, client_socket_fd, routes);
+		std::thread clientThread(handleClient, this);
 		clientThread.detach();
 	}
 }
@@ -59,19 +59,17 @@ void logServingFile(const std::string& path, const std::string& mimetype) {
 			  << std::endl;
 }
 
-void Server::handleClient(
-	int client_socket_fd,
-	std::map<std::string, void (*)(HttpRequest&, HttpResponse&)> routes) {
+void Server::handleClient(Server *server) {
 	char client_req_buffer[1024];
 	// handle client request.
 	// read from the client.
-	read(client_socket_fd, client_req_buffer, 1024);
+	read(server->client_socket_fd, client_req_buffer, 1024);
 	HttpRequest req = HttpRequest();
 
 	req.parseRequest(client_req_buffer);
 	HttpResponse res = HttpResponse();
 	// write to client.
-	for (auto x : routes) {
+	for (auto x : server->routes) {
 		if (x.first == req.path) {
 			x.second(req, res);
 			break;
@@ -80,7 +78,6 @@ void Server::handleClient(
 	std::string response = res.frameHttpResponse("200", "OK", req.headers);
 	logServingFile(req.path, to_string(res.get_type()));
 
-	write(client_socket_fd, response.c_str(), response.length());
-	// close client socket.
-	close(client_socket_fd);
+	write(server->client_socket_fd, response.c_str(), response.length());
+	close(server->client_socket_fd);
 }

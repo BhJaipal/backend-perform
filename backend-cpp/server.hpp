@@ -17,6 +17,7 @@
 class Server {
 	std::string port;
 	int socket_fd;
+	int client_socket_fd;
 	std::map<std::string, void (*)(HttpRequest&, HttpResponse&)> routes;
 
 public:
@@ -25,7 +26,5 @@ public:
 	void start();
 	void add_route(std::string path,
 				   void (*callback)(HttpRequest&, HttpResponse&));
-	static void handleClient(
-		int client_socket_fd,
-		std::map<std::string, void (*)(HttpRequest&, HttpResponse&)> routes);
+	static void handleClient(Server *server);
 };
