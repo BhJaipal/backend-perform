@@ -1,0 +1,27 @@
+{
+	"configurations": [
+		{
+			"name": "Linux",
+			"includePath": [
+				"${workspaceFolder}/**",
+				"/usr/include/**",
+				"/usr/include/*",
+				"/usr/include/x86_64-linux-gnu",
+				"/usr/include/linux",
+				"/usr/include/c++/11",
+				"/usr/include/c++/11/tr1",
+				"/usr/include/c++/11/parallel",
+				"/usr/include/x86_64-linux-gnu/c++/11",
+				"/usr/include/x86_64-linux-gnu/bits"
+			],
+			"defines": [],
+			"configurationProvider": "mesonbuild.mesonbuild",
+			"compilerPath": "/usr/bin/gcc",
+			"intelliSenseMode": "linux-gcc-x86",
+			"cStandard": "c23",
+			"cppStandard": "gnu++23",
+			"compilerArgs": ["-std=gnu++23", "-stdlib=libstdc++"]
+		}
+	],
+	"version": 4
+}

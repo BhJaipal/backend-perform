@@ -1,0 +1,25 @@
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Always
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+        AfterClass: false
+        AfterCaseLabel: false
+        AfterControlStatement: Never
+        AfterEnum: false
+        AfterFunction: false
+        AfterNamespace: false
+        AfterStruct: false
+        AfterUnion: false
+        AfterExternBlock: false
+        BeforeCatch: false

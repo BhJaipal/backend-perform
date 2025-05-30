@@ -1,0 +1,21 @@
+{
+	"C_Cpp.default.compileCommands": "/home/jaipal001/Desktop/files/chat-app/backend-cpp/builddir/compile_commands.json",
+	"C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
+	"files.associations": {
+		"*.vue": "vue",
+		"*.td": "cpp",
+		"*.ui": "xml",
+		"*.3": "manpage",
+		"*.sh": "shellscript",
+		"*.rbs": "ruby",
+		"*.def": "c",
+		"*.conf": "properties",
+		"*.spec": "shellscript",
+		"*.bpl": "blueprint-gtk",
+		"*.build": "python",
+		"random": "cpp",
+		"vector": "cpp",
+		"string": "cpp",
+		"*.build": "meson"
+	}
+}
