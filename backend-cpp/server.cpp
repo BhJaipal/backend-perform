@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <thread>
 
 #include "request.hpp"
@@ -54,9 +55,16 @@ void Server::start() {
 }
 
 // utility function to log the serving of a file.
-void logServingFile(const std::string& path, const std::string& mimetype) {
-	std::cout << "Serving file: " << path << " with MIME type: " << mimetype
-			  << std::endl;
+void logServingFile(unsigned status, const std::string method, const std::string path, const std::string& mimetype) {
+	std::string esc;
+	if (status < 300) {
+		esc = "\e[92m";
+	} else if (status < 400) {
+		esc = "\e[93m";
+	} else {
+		esc = "\e[91m";
+	}
+	std::cout << esc << status << " \e[0m\e[1m" << method << "\e[0m" << " " << path << ", MIME type: " << mimetype << '\n';
 }
 
 void Server::handleClient(Server *server) {
@@ -69,14 +77,20 @@ void Server::handleClient(Server *server) {
 	req.parseRequest(client_req_buffer);
 	HttpResponse res = HttpResponse();
 	// write to client.
+	char found = 0;
 	for (auto x : server->routes) {
 		if (x.first == req.path) {
 			x.second(req, res);
+			found = 1;
 			break;
 		}
 	}
-	std::string response = res.frameHttpResponse("200", "OK", req.headers);
-	logServingFile(req.path, to_string(res.get_type()));
+	std::string response;
+	if (found)
+		response = res.frameHttpResponse("200", "OK", req.headers);
+	else
+		response = res.frameHttpResponse("404", "Not Found", req.headers);
+	logServingFile(found ? 200 : 404, req.method, req.path, to_string(res.get_type()));
 
 	write(server->client_socket_fd, response.c_str(), response.length());
 	close(server->client_socket_fd);
