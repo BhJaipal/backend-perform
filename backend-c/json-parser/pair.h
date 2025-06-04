@@ -1,34 +1,7 @@
 #ifndef JSON_PAIR_H
 #define JSON_PAIR_H
 
-#include "json-str.h"
-#include "json-arr.h"
-
-#ifdef __x86_64
-typedef int int32;
-#else
-typedef long int32;
-#endif
-
-typedef enum {
-	INT,
-	FLOAT,
-	STRING,
-	ARRAY
-} JsonTypes;
-
-struct Value;
-Array_t(Value, struct Value);
-
-typedef struct Value {
-	JsonTypes  type;
-	union {
-		int32      i32;
-		float      f32;
-		String     str;
-		ValueArray arr;
-	} value;
-} Value;
+#include "value.h"
 
 typedef struct Pr {
 	JsonTypes  type;
@@ -38,16 +11,16 @@ typedef struct Pr {
 } Pair;
 
 struct _PairBuilder {
-	Pair (*from_i32)(String key,  int32 val);
-	Pair (*from_f32)(String key,  float val);
-	Pair (*from_str)(String key,  String val);
-	Pair (*from_arr)(String key,  ValueArray arr);
-	Pair (*from_cstr)(String key, char *cstr);
-	Pair (*from_vals)(String key, Value *val, unsigned len);
+	Pair *(*from_i32)(char *key,  int32 val);
+	Pair *(*from_f32)(char *key,  float val);
+	Pair *(*from_str)(char *key,  String val);
+	Pair *(*from_arr)(char *key,  ValueArray arr);
+	Pair *(*from_cstr)(char *key, char *cstr);
+	Pair *(*from_vals)(char *key, Value *val, unsigned len);
 };
 extern struct _PairBuilder PairBuilder;
 
-void print_pair(Pair pair, int level);
+void pair_print(Pair *pair, int level);
 
 void pair_free(Pair *pair);
 

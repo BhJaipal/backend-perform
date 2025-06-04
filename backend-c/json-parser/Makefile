@@ -1,9 +1,10 @@
-SRC = ./pair.c ./json-str.c
+SRC = ./pair.c ./json-str.c ./dict.c ./value.c
 
 build:
-	gcc $(SRC) -shared -o libjsonc.so
+	gcc $(SRC) -shared -o libjsonc.so -fPIC
 	chmod -x libjsonc.so
 
+TEST ?= ./tests/test_1.c
 test:
-	gcc test_1.c ./libjsonc.so
+	gcc $(TEST) ./libjsonc.so
 	./a.out

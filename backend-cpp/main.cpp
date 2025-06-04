@@ -122,6 +122,8 @@ int main() {
 		colors.insert(std::make_pair(user.getName(), user.num));
 	}
 	chats.push_back(Message("Hello", {17, 31}, "User1", "token1"));
+
+	// Server
 	Server server = Server("8000");
 	server.add_route("/", home);
 	server.add_route("/login", login);
