@@ -14,6 +14,12 @@ void str_append(String str, char *str2) {
 	str->str = realloc(str->str, sizeof(char[str->len]));
 	strcat(str->str, str2);
 }
+void str_push(String str, char ch) {
+	str->len++;
+	str->str = realloc(str->str, sizeof(char[str->len]));
+	str->str[str->len - 1] = ch;
+	str->str[str->len] = 0;
+}
 
 void str_free(String str) {
 	if (str->str != NULL) {
@@ -22,4 +28,10 @@ void str_free(String str) {
 	free(str);
 }
 
-
+void str_cpy(String dest, String src) {
+	if (src->len != dest->len) {
+		dest->str = realloc(dest->str, sizeof(char[src->len]));
+		dest->len = src->len;
+	}
+	strncpy(dest->str, src->str, src->len);
+}

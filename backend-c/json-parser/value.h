@@ -14,15 +14,18 @@ typedef enum {
 	INT,
 	FLOAT,
 	STRING,
-	ARRAY
+	ARRAY,
+	DICT
 } JsonTypes;
 
-struct Value;
+typedef struct Value Value;
 
 typedef struct _ValueArray {
-	struct Value *arr;
+	Value *arr;
 	unsigned len;
 } *ValueArray;
+
+typedef struct _Dict *Dict;
 
 typedef struct Value {
 	JsonTypes  type;
@@ -31,6 +34,7 @@ typedef struct Value {
 		float      f32;
 		String     str;
 		ValueArray arr;
+		Dict       dict;
 	} value;
 } Value;
 
@@ -41,6 +45,7 @@ struct _ValConstr {
 	Value (*from_f32)(float val);
 	Value (*from_arr)(ValueArray arr);
 	Value (*from_vals)(Value *val, unsigned len);
+	Value (*from_dict)(Dict dict);
 };
 
 extern struct _ValConstr value_new;

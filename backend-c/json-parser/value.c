@@ -1,5 +1,6 @@
 #include "value.h"
 #include <stdio.h>
+#include "dict.h"
 
 Value v_from_arr(ValueArray val) {
 	Value v = {ARRAY, 0};
@@ -29,13 +30,19 @@ Value v_from_i32(int32 val) {
 	v.value.i32 = val;
 	return v;
 }
+Value v_from_dict(Dict dict) {
+	Value v = {DICT, 0};
+	v.value.dict = dict;
+	return v;
+}
 
 struct _ValConstr value_new = {
 	v_from_str,
 	v_from_i32,
 	v_from_f32,
 	v_from_arr,
-	v_from_vals
+	v_from_vals,
+	v_from_dict
 };
 void value_print(Value value, int depth) {
 	switch (value.type) {
@@ -47,6 +54,9 @@ void value_print(Value value, int depth) {
 			break;
 		case STRING:
 			printf("\"%s\"", value.value.str->str);
+			break;
+		case DICT:
+			dict_print(value.value.dict, depth);
 			break;
 		default:
 			printf("%d", value.value.i32);
