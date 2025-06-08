@@ -50,10 +50,12 @@ func sendMsg(res http.ResponseWriter,  req *http.Request) {
 		res.Write([]byte("User does not exist, please login"))
 		return
 	}
-	hasher := crypto.SHA256.New()
 	var bs []byte
 	fmt.Appendf(bs, "%d", does_exist)
+
+	hasher := crypto.SHA256.New()
 	hasher.Write(bs)
+
 	out := hasher.Sum(nil)
 	if fmt.Sprintf("%x", out) != msg.Token {
 		res.Write([]byte("Invalid member token"))
@@ -109,10 +111,7 @@ func auth(res http.ResponseWriter,  req *http.Request) {
 	auth := "AUTH_FAILED"
 
 	for i := range(len(users)) {
-		hasher := crypto.SHA256.New()
-		hasher.Write([]byte(users[i].Password))
-		hashedPass := hasher.Sum(nil)
-		if users[i].Name == msg.Name && fmt.Sprintf("%x", hashedPass) == msg.Password {
+		if users[i].Name == msg.Name && users[i].Password == msg.Password {
 			does_exist := color[msg.Name]
 			hasher := crypto.SHA256.New()
 			var bs []byte
@@ -131,14 +130,13 @@ func auth(res http.ResponseWriter,  req *http.Request) {
 }
 
 func main() {
-	users = []User{user_new("jaipal", "J1i16a12"), user_new("hema", "hema007")};
+	users = []User{user_new("jaipal", "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027"), user_new("hema", "hema007")};
 	chats = []Message{};
 	color = make(map[string]int, len(users))
-	for i := range(len(users)) {
-		color[users[i].Name] = random_num_gen()
-	}
+	color["jaipal"] = 75;
+	color["hema"] = random_num_gen();
 	http.HandleFunc("/send-msg", sendMsg)
 	http.HandleFunc("/", show)
-	http.HandleFunc("/auth", auth)
+	http.HandleFunc("/login", auth)
 	http.ListenAndServe(":8000", nil)
 }

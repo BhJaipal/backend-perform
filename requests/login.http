@@ -1,0 +1,8 @@
+GET /login HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+
+{
+  "name": "jaipal",
+  "password": "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027"
+}

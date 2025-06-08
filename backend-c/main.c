@@ -116,12 +116,14 @@ void sendChatMsg(HttpRequest& req, HttpResponse& res) {
 
 int main() {
 	// dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027
-	users.push_back(User("jaipal", "J1i16a12", 75));
+	users.push_back(User("jaipal", "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027", 75));
 	users.push_back(User("hema", "hema007", random_num_gen()));
 	for (auto user : users) {
 		colors.insert(std::make_pair(user.getName(), user.num));
 	}
 	chats.push_back(Message("Hello", {17, 31}, "User1", "token1"));
+
+	// Server
 	Server server = Server("8000");
 	server.add_route("/", home);
 	server.add_route("/login", login);

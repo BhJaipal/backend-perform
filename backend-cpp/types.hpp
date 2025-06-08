@@ -23,12 +23,7 @@ public:
 	std::string getPassword() const { return password; }
 
 	bool operator==(const User& other) const {
-		unsigned char password_hash[32];
-		SHA256((const unsigned char*)password.c_str(), password.length(),
-			   password_hash);
-		std::string hashed_pass;
-		for (int i = 0; i < 32; i++) { hashed_pass += hex[password_hash[i]]; }
-		return name == other.name && hashed_pass == other.password;
+		return name == other.name && password == other.password;
 	}
 };
 class UserLoggedIn {

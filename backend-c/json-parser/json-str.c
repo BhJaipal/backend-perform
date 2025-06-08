@@ -29,7 +29,12 @@ void str_free(String str) {
 }
 
 void str_cpy(String dest, String src) {
-	if (src->len != dest->len) {
+	if (src->len == 0) {
+		free(src->str);
+		src->str = malloc(0);
+		src->str[0] = 0;
+		return;
+	} else if (src->len != dest->len) {
 		dest->str = realloc(dest->str, sizeof(char[src->len]));
 		dest->len = src->len;
 	}
