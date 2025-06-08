@@ -1,4 +1,4 @@
-SRC = ./pair.c ./json-str.c ./dict.c ./value.c ./lexer/tokens.h
+SRC = ./pair.c ./json-str.c ./dict.c ./value.c ./lexer/tokens.c
 
 build:
 	gcc $(SRC) -shared -o libjsonc.so -fPIC

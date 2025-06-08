@@ -23,6 +23,8 @@ typedef struct {
 	String literal;
 } Token;
 
+Token token_new(TokenType tt, String literal);
+
 void token_free(Token token);
 
 Array_t(Tokens, Token, token);

@@ -47,6 +47,7 @@ void token_print(Token token, int depth) {
 }
 
 Array_impl(Tokens, Token, token);
+Array_impl_print(Tokens, Token, token, token_print);
 
 char is_whitespace(char ch) {
 	char whitespaces[] = " \r\b\t\n";
@@ -103,6 +104,11 @@ processing_literal_tt process_literal(String literal) {
 	return process_invalid;
 }
 
+Token token_new(TokenType tt, String literal) {
+	Token token = {tt, 0};
+	token.literal = str_new(literal->str);
+	return token;
+}
 Tokens lexer(String src) {
 	Tokens tokens = token_array_new();
 	String literal;
@@ -129,12 +135,14 @@ Tokens lexer(String src) {
 				is_str = 0;
 				is_dbl_quote = 0;
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_STRING, literal});
+				token_array_add(tokens, token_new(TT_STRING, literal));
+				str_cpy(literal, str_new(""));
 			// 'strme4874gdhd"' valid
 			} else if (!is_dbl_quote && ch == '\'') {
 				is_str = 0;
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_STRING, literal});
+				token_array_add(tokens, token_new(TT_STRING, literal));
+				str_cpy(literal, str_new(""));
 			} else {
 				str_push(literal, ch);
 			}
@@ -145,10 +153,8 @@ Tokens lexer(String src) {
 			// 3737''   TT_INVALID
 			if (literal->len != 0) {
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_INVALID, literal});
-				free(literal->str);
-				literal->str = NULL;
-				literal->len = 0;
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
 				return tokens;
 			}
 			TokenType last_tt = token_type_last(tokens);
@@ -164,10 +170,8 @@ Tokens lexer(String src) {
 				&& last_tt != TT_L_SQ
 			) {
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_INVALID, literal});
-				free(literal->str);
-				literal->str = NULL;
-				literal->len = 0;
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
 				return tokens;
 			}
 			// Start string
@@ -180,27 +184,21 @@ Tokens lexer(String src) {
 		if (ch == ':') {
 			if (literal->len != 0) {
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_INVALID, literal});
-				free(literal->str);
-				literal->str = NULL;
-				literal->len = 0;
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
 				return tokens;
 			}
 			TokenType last_tt = token_type_last(tokens);
 			// "tet": Only valid
 			if (tokens->len != 0 && last_tt != TT_STRING) {
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_INVALID, literal});
-				free(literal->str);
-				literal->str = NULL;
-				literal->len = 0;
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
 				return tokens;
 			}
 			str_push(literal, ch);
-			token_array_add(tokens, (Token){TT_INVALID, literal});
-			free(literal->str);
-			literal->str = NULL;
-			literal->len = 0;
+			token_array_add(tokens, token_new(TT_INVALID, literal));
+			str_cpy(literal, str_new(""));
 			continue;
 		}
 		// "g36d"|38.47|7364|true|false ] or } or ,
@@ -209,13 +207,17 @@ Tokens lexer(String src) {
 				processing_literal_tt tt = process_literal(literal);
 				switch (tt) {
 					case process_true:
-						token_array_add(tokens, (Token){TT_BOOL, literal});
+						token_array_add(tokens, token_new(TT_BOOL, literal));
+						break;
 					case process_false:
-						token_array_add(tokens, (Token){TT_BOOL, literal});
+						token_array_add(tokens, token_new(TT_BOOL, literal));
+						break;
 					case process_float:
-						token_array_add(tokens, (Token){TT_FLOAT, literal});
+						token_array_add(tokens, token_new(TT_FLOAT, literal));
+						break;
 					case process_int:
-						token_array_add(tokens, (Token){TT_INT, literal});
+						token_array_add(tokens, token_new(TT_INT, literal));
+						break;
 					default:
 						break;
 				}
@@ -240,10 +242,37 @@ Tokens lexer(String src) {
 				&& !(ch == '}' && last_tt == TT_L_CURLY)
 			) {
 				str_push(literal, ch);
-				token_array_add(tokens, (Token){TT_INVALID, literal});
-				free(literal->str);
-				literal->str = NULL;
-				literal->len = 0;
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
+				return tokens;
+			}
+			TokenType tt;
+			switch (ch) {
+				case ']':
+					tt = TT_R_SQ;
+					break;
+				case '}':
+					tt = TT_R_CURLY;
+					break;
+				default:
+					tt = TT_COMMA;
+					break;
+			}
+			token_array_add(tokens, token_new(tt, literal));
+			str_cpy(literal, str_new(""));
+			continue;
+		}
+		if (ch == '[' || ch == '{') {
+			if (literal->len != 0) {
+				str_push(literal, ch);
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
+				return tokens;
+			}
+			TokenType last_tt = token_type_last(tokens);
+			if (last_tt != TT_L_SQ && last_tt != TT_COMMA && last_tt != TT_COLON) {
+				token_array_add(tokens, token_new(TT_INVALID, literal));
+				str_cpy(literal, str_new(""));
 				return tokens;
 			}
 			TokenType tt;
@@ -254,16 +283,30 @@ Tokens lexer(String src) {
 				case '{':
 					tt = TT_L_CURLY;
 					break;
+			}
+			token_array_add(tokens, token_new(tt, literal));
+			str_cpy(literal, str_new(""));
+		}
+		if (is_whitespace(ch)) {
+			processing_literal_tt tt = process_literal(literal);
+			switch (tt) {
+				case process_true:
+					token_array_add(tokens, token_new(TT_BOOL, literal));
+					break;
+				case process_false:
+					token_array_add(tokens, token_new(TT_BOOL, literal));
+					break;
+				case process_float:
+					token_array_add(tokens, token_new(TT_FLOAT, literal));
+					break;
+				case process_int:
+					token_array_add(tokens, token_new(TT_INT, literal));
+					break;
 				default:
-					tt = TT_COMMA;
 					break;
 			}
-			token_array_add(tokens, (Token){tt, literal});
-			continue;
+			str_cpy(literal, str_new(""));
 		}
-		// only numbers and booleans support remaining
-		// and [ and { also
-		char is_number = is_valid_number(literal);
 	}
 	return tokens;
 }
