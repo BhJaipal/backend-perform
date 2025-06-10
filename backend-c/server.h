@@ -8,23 +8,29 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <map>
-#include <string>
+#include "json-str.h"
+#include "json-arr.h"
+#include "request.h"
+#include "response.h"
 
-#include "request.hpp"
-#include "response.hpp"
+typedef void (*callback)(HttpRequest *, HttpResponse*);
 
-class Server {
-	std::string port;
+typedef struct {
+	String path;
+	callback fn;
+} routeDict;
+Array_t(Routes, routeDict, route);
+
+typedef struct Server {
+	String port;
 	int socket_fd;
 	int client_socket_fd;
-	std::map<std::string, void (*)(HttpRequest&, HttpResponse&)> routes;
+	Routes routes;
+} Server;
 
-public:
-	Server(std::string pt);
-	void connect_socket();
-	void start();
-	void add_route(std::string path,
-				   void (*callback)(HttpRequest&, HttpResponse&));
-	static void handleClient(Server *server);
-};
+static void handleClient(Server *server);
+Server server_new(String pt);
+void add_route(Server *this, String path, callback fn);
+
+void connect_socket(Server *server);
+void start(Server *server);

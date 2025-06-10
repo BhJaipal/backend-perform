@@ -1,11 +1,10 @@
 project('Backend in C', 'c')
 
-jsoncpp = dependency('jsoncpp')
 open_ssl = dependency('openssl')
 
 executable(
 	'backend',
-	['main.cpp', 'server.cpp', 'request.cpp', 'response.cpp', 'lib.cpp'],
+	['main.c', 'server.c', 'request.c', 'response.c', 'lib.c', './json-str.c', './types.c', './cJSON/cJSON.c'],
 	include_directories: '.',
-	dependencies: [jsoncpp, open_ssl],
+	dependencies: [open_ssl],
 )
