@@ -1,13 +1,7 @@
-#include <jsoncpp/json/value.h>
+#include "cJSON/cJSON.h"
 #include <openssl/sha.h>
 
-#include <cstdio>
-#include <iostream>
-#include <map>
-#include <string>
-#include <utility>
-#include <vector>
-
+#include <stdio.h>
 #include "lib.hpp"
 #include "request.hpp"
 #include "response.hpp"
@@ -30,7 +24,7 @@ std::map<std::string, int> colors;
  * request.
  */
 
-void home(HttpRequest& req, HttpResponse& res) {
+void home(HttpRequest *req, HttpResponse *res) {
 	if (!req.hasJsonBody) {
 		res.write("You are not allowed to check messages without login");
 		std::cout << "Unknown tried to access chat\n";
@@ -68,7 +62,7 @@ void home(HttpRequest& req, HttpResponse& res) {
  *
  * Otherwise, the response contains the "AUTH_FAILED" string in the "auth" key.
  */
-void login(HttpRequest& req, HttpResponse& res) {
+void login(HttpRequest *req, HttpResponse *res) {
 	Json::Value val;
 	val["auth"] = "AUTH_FAILED";
 	if (req.hasJsonBody) {
@@ -85,7 +79,7 @@ void login(HttpRequest& req, HttpResponse& res) {
 	res.writeJSON(val);
 }
 
-void sendChatMsg(HttpRequest& req, HttpResponse& res) {
+void sendChatMsg(HttpRequest *req, HttpResponse *res) {
 	if (!req.hasJsonBody) {
 		res.write("You are not allowed to check messages without login");
 		std::cout << "Unknown tried to senf message to chat\n";
