@@ -20,4 +20,4 @@ typedef struct HttpRequest {
 HttpRequest http_request_new();
 void parseRequest(HttpRequest *req, const char *rawRequest);
 
-cJSON getJsonBody(HttpRequest *req);
+cJSON* getJsonBody(HttpRequest *req);

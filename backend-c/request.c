@@ -1,5 +1,7 @@
 #include "request.h"
+#include <stdio.h>
 #include <string.h>
+#include "cJSON/cJSON.h"
 #include "json-str.h"
 
 HttpRequest http_request_new() {
@@ -28,16 +30,18 @@ void parseRequest(HttpRequest *req, const char *rawRequest) {
 		curr_index++;
 	}
 	if (curr_index < buffer_len) {
-		char *jsonString = rawRequest +curr_index;
+		char *jsonString = rawRequest + curr_index;
 		str_append(req->body, jsonString);
 		req->hasJsonBody = 1;
 	}
 }
-cJSON getJsonBody(HttpRequest *req) {
-	Json::CharReaderBuilder reader;
-	std::string errs;
-	Json::Value jsonData;
-	std::istringstream s(body);
-	Json::parseFromStream(reader, s, &jsonData, &errs);
-	return jsonData;
+cJSON* getJsonBody(HttpRequest *req) {
+	cJSON *json = cJSON_Parse(req->body->str);
+	if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error before: %s\n", error_ptr);
+        }
+    }
+	return json;
 }

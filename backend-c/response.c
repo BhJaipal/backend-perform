@@ -1,26 +1,28 @@
-#include <sstream>
-#include <string>
+#include "response.h"
+#include "json-str.h"
 
-#include "response.hpp"
-
-std::string to_string(Mimetype type) {
+String to_string(Mimetype type) {
 	switch (type) {
-		case Mimetype::JSON: return "application/json"; break;
-		case Mimetype::HTML: return "text/html"; break;
-		default: return "text/plain"; break;
+		case JSON: return str_new("application/json"); break;
+		case HTML: return str_new("text/html"); break;
+		default: return str_new("text/plain"); break;
 	}
 }
 
-HttpResponse::HttpResponse() : body(""), type(Mimetype::TEXT) {}
+HttpResponse http_res_new() {
+	HttpResponse res;
+	res.body = str_new("");
+	res.type = TEXT;
+	return res;
+}
 
-std::string HttpResponse::frameHttpResponse(
-	std::string statuscode, std::string statusmsg,
-	std::map<std::string, std::string> headers) {
+String frameHttpResponse(HttpResponse *res, char *statuscode, char *statusmsg,
+		Headers headers) {
 	switch (type) {
-		case Mimetype::JSON:
+		case JSON:
 			headers["content-type"] = "application/json";
 			break;
-		case Mimetype::HTML: headers["content-type"] = "text/html"; break;
+		case HTML: headers["content-type"] = "text/html"; break;
 		default: headers["content-type"] = "text/plain"; break;
 	}
 	headers["content-length"] = std::to_string(body.length());

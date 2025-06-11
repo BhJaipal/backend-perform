@@ -21,6 +21,6 @@ String frameHttpResponse(HttpResponse *res, char *statuscode, char *statusmsg,
 		Headers headers);
 
 void res_write(HttpResponse *res, String data);
-void res_writeJSON(HttpResponse *res, cJSON data);
+void res_writeJSON(HttpResponse *res, cJSON *data);
 void set_mimetype(HttpResponse *res, Mimetype type);
 Mimetype get_type(HttpResponse *res);

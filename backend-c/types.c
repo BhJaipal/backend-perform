@@ -1,3 +1,4 @@
+#include "cJSON/cJSON.h"
 #include "json-str.h"
 #include "types.h"
 #include <string.h>
@@ -33,4 +34,22 @@ MessageUser msg_user_from_msg(Message msg) {
 	m.time.min = msg.time.min;
 	m.sender = msg.sender;
 	return m;
+}void msg_free(Message msg) {
+	str_free(msg.sender);
+	str_free(msg.text);
+	str_free(msg.token);
+}
+void user_free(User msg) {
+	str_free(msg.name);
+	str_free(msg.password);
+	str_free(msg.token);
+}
+cJSON* msg_user_to_json(MessageUser user) {
+	cJSON *monitor = cJSON_CreateObject();
+	cJSON_AddStringToObject(monitor, "sender", user.sender->str);
+	cJSON_AddStringToObject(monitor, "text", user.text->str);
+	cJSON *time = cJSON_AddObjectToObject(monitor, "time");
+	cJSON_AddNumberToObject(time, "hr", user.time.hr);
+	cJSON_AddNumberToObject(time, "min", user.time.min);
+	return monitor;
 }

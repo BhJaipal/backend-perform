@@ -1,3 +1,4 @@
+#include "cJSON/cJSON.h"
 #include "json-str.h"
 
 #include "lib.h"
@@ -49,3 +50,7 @@ typedef struct MessageUser {
 	String sender;
 } MessageUser;
 MessageUser msg_user_new(String t, MsgTime tm, String s);
+
+void msg_free(Message msg);
+void user_free(User msg);
+cJSON* msg_user_to_json(MessageUser user);
