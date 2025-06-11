@@ -22,6 +22,7 @@ typedef struct {
 } ColorDict;
 void color_free(ColorDict c) {}
 Array_t(Colors, ColorDict, color);
+Array_impl(Colors, ColorDict, color);
 Colors colors;
 
 Array_impl(Users, User, user);
@@ -110,7 +111,7 @@ void sendChatMsg(HttpRequest *req, HttpResponse *res) {
 	}
 	cJSON *parsed = getJsonBody(req);
 	Message user = msg_new(
-		str_new(cJSON_GetObjectItemCaseSensitive(parsed, "sender")->valuestring),
+		str_new(cJSON_GetObjectItemCaseSensitive(parsed, "text")->valuestring),
 		(MsgTime){
 			cJSON_GetObjectItemCaseSensitive(
 				cJSON_GetObjectItemCaseSensitive(parsed, "time")->child, "hr"
@@ -119,7 +120,7 @@ void sendChatMsg(HttpRequest *req, HttpResponse *res) {
 				cJSON_GetObjectItemCaseSensitive(parsed, "time")->child, "min"
 			)->valueint
 		},
-		str_new(cJSON_GetObjectItemCaseSensitive(parsed, "text")->valuestring),
+		str_new(cJSON_GetObjectItemCaseSensitive(parsed, "sender")->valuestring),
 		str_new(cJSON_GetObjectItemCaseSensitive(parsed, "token")->valuestring)
 	);
 	if (!strcmp(user.token->str, "AUTH_FAILED")) {

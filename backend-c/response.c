@@ -1,5 +1,9 @@
 #include "response.h"
+#include <string.h>
+#include "cJSON/cJSON.h"
+#include "json-arr.h"
 #include "json-str.h"
+#include "request.h"
 
 String to_string(Mimetype type) {
 	switch (type) {
@@ -12,35 +16,66 @@ String to_string(Mimetype type) {
 HttpResponse http_res_new() {
 	HttpResponse res;
 	res.body = str_new("");
+	res.headers = header_array_new();
+	res.statuscode = str_new("");
+	res.statusmsg = str_new("");
 	res.type = TEXT;
 	return res;
 }
 
 String frameHttpResponse(HttpResponse *res, char *statuscode, char *statusmsg,
 		Headers headers) {
-	switch (type) {
+	String ct = str_new("content-type");
+	String ct_val;
+	switch (res->type) {
 		case JSON:
-			headers["content-type"] = "application/json";
+			ct_val = str_new("application/json");
 			break;
-		case HTML: headers["content-type"] = "text/html"; break;
-		default: headers["content-type"] = "text/plain"; break;
+		case HTML: ct_val = str_new("text/html"); break;
+		default: ct_val = str_new("text/plain"); break;
 	}
-	headers["content-length"] = std::to_string(body.length());
+	header_array_add(headers, (Header){ct, ct_val});
+	header_array_add(headers, (Header){str_new("method"), str_new("GET")});
+	for (unsigned i = 0; i < headers->len; i++) {
+		if (!strcmp(headers->arr[i].header->str, "method") && !headers->arr[i].value->len) {
+			str_cpy(headers->arr[i].value, str_new("GET"));
+		}
+		if (!strcmp(headers->arr[i].header->str, "path") && !headers->arr[i].value->len) {
+			str_cpy(headers->arr[i].value, str_new("/"));
+		}
+	}
 
-	if (headers["method"].length()) headers["method"] = "GET";
-	if (headers["path"].length()) headers["path"] = "/";
-	std::ostringstream buffer;
-	buffer << "HTTP/1.1 " << statuscode << " " << statusmsg << "\r\n";
-	for (auto x : headers) { buffer << x.first << ": " << x.second << "\r\n"; }
-	buffer << "\r\n" << body;
-	return buffer.str();
+	String buffer = str_new("");
+	str_append(buffer, "HTTP/1.1 ");
+	str_append(buffer, statuscode);
+	str_append(buffer, " ");
+	str_append(buffer, statusmsg);
+	str_append(buffer, "\r\n");
+	for (unsigned i = 0; i < headers->len; i++) {
+		Header header = headers->arr[i];
+		str_append(buffer, header.header->str);
+		str_append(buffer, ": ");
+		str_append(buffer, header.value->str);
+		str_append(buffer, "\r\n");
+	}
+	str_append(buffer, "\r\n");
+	str_append(buffer, res->body->str);
+	return buffer;
 }
-void HttpResponse::write(std::string data) { body = data; }
-
-Mimetype HttpResponse::get_type() { return type; }
-
-void HttpResponse::writeJSON(Json::Value data) {
-	body = data.toStyledString();
-	set_mimetype(Mimetype::JSON);
+void res_write(HttpResponse *res, String data) {
+	res->body = data;
 }
-void HttpResponse::set_mimetype(Mimetype type) { this->type = type; }
+void res_writeJSON(HttpResponse *res, cJSON *data) {
+	str_append(res->body, cJSON_Print(data));
+}
+void set_mimetype(HttpResponse *res, Mimetype type) {
+	res->type = type;
+}
+Mimetype get_type(HttpResponse *res) {
+	return res->type;
+}
+void header_free(Header hdr) {
+	str_free(hdr.header);
+	str_free(hdr.value);
+}
+Array_impl(Headers, Header, header);

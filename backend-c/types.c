@@ -5,7 +5,7 @@
 #include "lib.h"
 
 User user_new(String na, String pass, int n) {
-	User u = {na, pass, n};
+	User u = {na, pass, n, str_new("")};
 	u.token = str_new((char*)gen_token(n));
 	return u;
 }
@@ -52,4 +52,8 @@ cJSON* msg_user_to_json(MessageUser user) {
 	cJSON_AddNumberToObject(time, "hr", user.time.hr);
 	cJSON_AddNumberToObject(time, "min", user.time.min);
 	return monitor;
+}
+Message msg_new(String t, MsgTime tm, String s, String tok) {
+	Message m = {t, tm, s, tok};
+	return m;
 }

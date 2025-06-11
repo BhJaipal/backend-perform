@@ -28,7 +28,7 @@ typedef struct Server {
 	Routes routes;
 } Server;
 
-static void handleClient(Server *server);
+void handleClient(Server *server);
 Server server_new(String pt);
 void add_route(Server *this, String path, callback fn);
 

@@ -5,7 +5,7 @@
 #include "json-str.h"
 
 HttpRequest http_request_new() {
-	HttpRequest req = {str_new(""), str_new(""), 0};
+	HttpRequest req = {str_new(""), str_new(""), header_array_new(), str_new(""), 0};
 	return req;
 }
 
@@ -30,8 +30,8 @@ void parseRequest(HttpRequest *req, const char *rawRequest) {
 		curr_index++;
 	}
 	if (curr_index < buffer_len) {
-		char *jsonString = rawRequest + curr_index;
-		str_append(req->body, jsonString);
+		const char *jsonString = rawRequest + curr_index;
+		str_append(req->body, (char *)jsonString);
 		req->hasJsonBody = 1;
 	}
 }

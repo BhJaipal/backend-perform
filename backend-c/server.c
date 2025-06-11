@@ -16,9 +16,6 @@ void route_free(routeDict route) {
 }
 Array_impl(Routes, routeDict, route);
 
-void start(Server *server);
-static void handleClient(Server *server);
-
 Server server_new(String pt) {
 	Server s = {pt, 0, 0, route_array_new()};
 	return s;
@@ -48,10 +45,15 @@ void connect_socket(Server *server) {
 	printf("Server started\n");
 }
 void add_route(Server *this, String path, callback fn) {
+	route_array_add(this->routes, (routeDict){path, fn});
+}
+
+void start(Server *this) {
 	struct sockaddr_in client_addr;
 	socklen_t client_addr_size;
 	connect_socket(this);
 	client_addr_size = sizeof(struct sockaddr_in);
+	this->routes = route_array_new();
 
 	while (1) {
 		this->client_socket_fd = accept(this->socket_fd, (struct sockaddr*)&client_addr, &client_addr_size);
