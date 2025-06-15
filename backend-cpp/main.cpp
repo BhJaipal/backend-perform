@@ -116,7 +116,10 @@ void sendChatMsg(HttpRequest& req, HttpResponse& res) {
 
 int main() {
 	// dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027
-	users.push_back(User("jaipal", "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027", 75));
+	users.push_back(
+		User("jaipal",
+			 "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027",
+			 75));
 	users.push_back(User("hema", "hema007", random_num_gen()));
 	for (auto user : users) {
 		colors.insert(std::make_pair(user.getName(), user.num));
@@ -128,6 +131,9 @@ int main() {
 	server.add_route("/", home);
 	server.add_route("/login", login);
 	server.add_route("/send-msg", sendChatMsg);
+	server.add_route("/nothing", [](HttpRequest& req, HttpResponse& res) {
+		res.write("Nothing");
+	});
 	server.start();
 	return 0;
 }
