@@ -1,5 +1,9 @@
 package org.example;
 
+import java.util.HashMap;
+
+import org.json.simple.JSONObject;
+
 public class Response {
 	int statusCode;
 	String contentType;
@@ -30,5 +34,10 @@ public class Response {
 	void writeJson(JsonObj map) {
 		contentType = "application/json";
 		body = map.toJson();
+	}
+	void writeJson(HashMap<?, ?> json) {
+		contentType = "application/json";
+		JSONObject object = new JSONObject(json);
+		write(object.toJSONString());
 	}
 }

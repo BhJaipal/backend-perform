@@ -6,8 +6,6 @@ package org.example;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.json.simple.JSONObject;
-
 public class App {
 	public static void main(String[] args) {
 		ArrayList<User> users = new ArrayList<>();
@@ -15,8 +13,6 @@ public class App {
 		users.add(new User("hema", "hema007", 75));
 
 		ArrayList<Message> messages = new ArrayList<>();
-		// messages.add(new Message("Hello World", "jaipal",
-		// 		"f369cb89fc627e668987007d121ed1eacdc01db9e28f8bb26f358b7d8c4f08ac", new Message.MsgTime(28, 74)));
 		Server server = new Server(8000);
 		server.add_route("/", (request, response) -> {
 			User user = User.readJsonHome(request.body);
@@ -30,9 +26,7 @@ public class App {
 					if (messages.size() == 0) {
 						HashMap<String, String> map = new HashMap<>();
 						map.put("output", "No messages yet");
-						JSONObject object = new JSONObject(map);
-						response.contentType = "application/json";
-						response.write(object.toJSONString());
+						response.writeJson(map);
 					} else {
 						response.writeJson(messages.get(messages.size() - 1));
 					}
@@ -47,18 +41,14 @@ public class App {
 			HashMap<String, String> map = new HashMap<>();
 			if (user == null) {
 				map.put("auth", "AUTH_FAILED");
-				JSONObject object = new JSONObject(map);
 				response.setStatusCode(401);
-				response.contentType = "application/json";
-				response.write(object.toJSONString());
+				response.writeJson(map);
 				return;
 			}
 			for (User el : users) {
 				if (el.name.equalsIgnoreCase(user.name) && el.password.equals(user.password)) {
 					map.put("auth", el.token);
-					JSONObject object = new JSONObject(map);
-					response.contentType = "application/json";
-					response.write(object.toJSONString());
+					response.writeJson(map);
 					return;
 				}
 			}
