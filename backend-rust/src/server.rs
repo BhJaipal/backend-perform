@@ -1,10 +1,13 @@
-use std::net::{TcpListener, SocketAddr, IpAddr, Ipv4Addr, TcpStream};
+use std::net::{TcpListener, SocketAddr, IpAddr, Ipv4Addr};
 use std::collections::HashMap;
+use std::rc::Rc;
+use crate::request::*;
+use crate::response::*;
 
 pub struct Server {
-    tcp_server: TcpListener,
     port: u16,
-    routes: HashMap<String, fn(TcpStream)>
+    tcp_server: TcpListener,
+    routes: HashMap<String, fn(Request, &mut Response)>
 }
 impl Server {
     pub fn new(port: u16) -> Self {
@@ -14,20 +17,24 @@ impl Server {
             Err(error) => panic!("Cannot bind to Tcp Server: {error:?}")
         };
         Self {
-            tcp_server: tcp_listener,
             port,
+            tcp_server: tcp_listener,
             routes: HashMap::new()
         }
     }
-    pub fn add_route(&mut self, route: String, callback: &fn(TcpStream)) {
-        self.routes.insert(route, *callback);
+    pub fn add_route(&mut self, route: String, callback: fn(Request, &mut Response)) {
+        self.routes.insert(route, callback);
     }
     pub fn start(&self) {
-        for steam in self.tcp_server.incoming() {
-            match steam {
-                Ok(steam) => {
+        println!("Server started at http://localhost:{}/", self.port);
+        for stream in self.tcp_server.incoming() {
+            match stream {
+                Ok(stream) => {
                     if let Some((_k, v)) = self.routes.iter().next() {
-                        v(steam);
+                        let req = Request::new(stream.try_clone().unwrap());
+                        let mut res = Response::new(stream);
+                        v(req, &mut res);
+                        res.dump();
                     }
                 },
                 Err(error) => {

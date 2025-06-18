@@ -1,11 +1,16 @@
 mod server;
+mod request;
+mod response;
+use crate::response::*;
+use crate::server::Server;
+use crate::request::*;
 
-use std::net::TcpStream;
-fn home(steam: TcpStream) {
+fn home(_req: Request, res: &mut Response) {
+    res.body = "Hello World".to_string();
 }
 
 fn main() {
-    let mut _server = server::Server::new(8000);
-    _server.add_route("/".to_string(), &(home as fn(TcpStream)));
-    _server.start();
+    let mut server = Server::new(8000);
+    server.add_route("/".to_string(), home);
+    server.start();
 }
