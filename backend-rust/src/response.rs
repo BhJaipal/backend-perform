@@ -57,11 +57,12 @@ impl Response {
         self.body = data;
     }
     pub fn dump(&mut self) {
-        let output = self.code.clone().to_string();
+        let code = self.code.clone().to_string();
+        let content_type = self.content_type.clone().to_string();
+        let output = format!("HTTP/1.1 {}\r\nContent-Type: {}\r\n\r\n{}", code, content_type, self.body.clone());
 
-        let _ = self.stream.write(format!("HTTP/1.1 {}\r\n", output).as_bytes()).unwrap();
-        let _ = self.stream.write(format!("Content-Type: {}\r\n", self.content_type.clone().to_string()).as_bytes()).unwrap();
-        let _ = self.stream.write(format!("\r\n{}", self.body.clone()).as_bytes()).unwrap();
-        self.stream.flush().unwrap();
+        let mut buf_writer = BufWriter::new(&mut self.stream);
+        buf_writer.write_all(output.as_bytes()).unwrap();
+        buf_writer.flush().unwrap();
     }
 }

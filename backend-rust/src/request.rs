@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::io::{Read, BufReader};
+use std::string::ToString;
 
 #[derive(PartialEq, PartialOrd, Clone)]
 pub enum Method {
@@ -8,7 +9,7 @@ pub enum Method {
     Post
 }
 
-impl Method {
+impl ToString for Method {
     fn to_string(&self) -> String {
         (if *self == Method::Post { "POST" } else { "GET" }).to_string()
     }
@@ -35,67 +36,38 @@ impl Request {
         }
     }
     fn start_read(&mut self) {
+        self.had_read = true;
         let mut reader = BufReader::new(self.stream_ref.try_clone().unwrap());
-        let mut reader_buf = Vec::new();
-        let _ = reader.read_to_end(&mut reader_buf);
-        let request_str = std::str::from_utf8(reader_buf.as_mut_slice()).unwrap().to_string();
+        let mut reader_buf = [0; 500];
+        let _ = reader.read_exact(&mut reader_buf);
+        let mut request_str = std::str::from_utf8(reader_buf.as_slice()).unwrap().to_string();
 
-        let mut body = String::new();
-        let _ = self.stream_ref.try_clone().unwrap().read_to_string(&mut body);
-        self.body = body;
+        let _ = self.stream_ref.try_clone().unwrap().read_exact(&mut reader_buf);
+        self.body = String::from_utf8(reader_buf.to_vec()).unwrap();
 
-        let (_method, path_start) = if request_str.starts_with("POST") {
-            (Method::Post, 5)
+
+        let mut lines = Vec::new();
+        while request_str.contains("\n") && !request_str.is_empty() {
+            let (l1, l2) = request_str.split_once("\n").unwrap();
+            lines.push(l1.to_string());
+            request_str = l2.to_string();
+        }
+        let (_method, path_start) = if lines.first().unwrap().starts_with("POST") {
+            (Method::Post, 4)
         } else {
-            (Method::Get, 4)
+            (Method::Get, 3)
         };
+        let first_line = lines.first().unwrap();
+        let mut path = first_line[path_start..first_line.len()].to_string();
+        path = path.split_off(path.find(" ").unwrap());
         self.method = _method;
-        let mut path = String::new();
-        let mut path_end = false;
-        let mut headers = HashMap::new();
-        let mut key = String::new();
-        let mut val = String::new();
-        let mut is_key = true;
-        let mut twine_lf = false;
-        for ref mut i in path_start..request_str.len() {
-            if !path_end {
-                if  request_str.chars().nth(*i).unwrap().is_ascii_whitespace() {
-                    path_end = true;
-                    *i = request_str.find('\n').unwrap() - 1;
-                } else  {
-                    path.push(request_str.chars().nth(*i).unwrap());
-                }
-            }
-            else {
-                let s = request_str.chars().nth(*i).unwrap();
-                match request_str.chars().nth(*i).unwrap() {
-                    ':' => {
-                        if !is_key { val.push(':'); }
-                        else { is_key = false; }
-                        twine_lf = false;
-                        continue;
-                    },
-                    ' ' => { continue; },
-                    '\n' => {
-                        if twine_lf { break; }
-                        headers.insert(key, val);
-                        key = String::new();
-                        val = String::new();
-                        twine_lf = true;
-                    },
-                    '\r' => { continue; },
-                    '\t' => { continue; },
-                    _ => {
-                        twine_lf = false;
-                        if is_key { key.push(s); }
-                        else { val.push(s); }
-                    }
-                }
-            }
+        lines = lines[1..lines.len()].to_vec();
+        for line in lines {
+            if line.is_empty() || !line.contains(":") { break; }
+            let (k, v) = line.split_once(": ").unwrap();
+            self.headers.insert(k.to_string(), v.to_string());
         }
         self.path = path;
-        self.headers = headers;
-        self.had_read = true;
     }
     #[allow(unused)]
     pub fn get_body(&mut self) -> String {
