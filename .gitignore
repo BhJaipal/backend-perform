@@ -4,3 +4,6 @@ a.out
 *.so
 *.exe
 *.a
+*.o
+*.class
+

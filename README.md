@@ -36,3 +36,13 @@ Ok you can use it but no libraries for JS/TS allowed like express, koala etc
 ## Requests
 
 Your HTTP server should full respond to [these request](requests) atleast
+
+## Remainings
+
+> Java
+>
+> Kotlin
+>
+> Rust
+>
+> Scala
