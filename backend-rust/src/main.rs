@@ -1,15 +1,24 @@
-use backend_rust::{Server, Request, Response};
+use actix_web::{App, HttpServer, HttpResponse, web};
+mod data;
 
-fn home(mut req: Request, res: &mut Response) {
-    res.body = "Hello World".to_string();
-    println!("{} {}", req.get_method().to_string(), req.get_path());
-    for (k, v) in req.get_headers() {
-        println!("{} => {}", k, v);
-    }
+async fn home() -> HttpResponse {
+    HttpResponse::Ok().json(
+        data::Message::new(
+            "Hello World".to_string(),
+            "Jaipal".to_string(),
+            "token".to_string(),
+            10, 26)
+        )
 }
 
-fn main() {
-    let mut server = Server::new(8000);
-    server.add_route("/".to_string(), home);
-    server.start();
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    println!("starting HTTP server at http://localhost:8000");
+
+    HttpServer::new(|| {
+        App::new()
+            .route("/", web::get().to(home))
+    })
+    .bind(("127.0.0.1", 8000))?
+        .run().await
 }
