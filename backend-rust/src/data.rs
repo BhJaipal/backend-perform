@@ -54,8 +54,6 @@ impl User {
         }
     }
     pub fn cmp_login(self, user: LoginUser) -> bool {
-        println!("{} {}", self.name, user.name);
-        println!("{} {}", self.pass, user.password);
         self.name == user.name && self.pass == user.password
     }
     pub fn cmp_msg(self, user: MsgUser) -> bool {

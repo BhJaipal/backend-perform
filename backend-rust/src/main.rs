@@ -1,33 +1,38 @@
 use actix_web::{App, HttpServer, HttpResponse, web};
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
 mod data;
 use data::*;
 
 struct SharedState {
-    users:    Mutex<Vec<User>>,
-    messages: Mutex<Vec<Message>>
+    users: Vec<User>,
+    chats: Vec<Message>
 }
 impl SharedState {
-    pub const fn new() -> Self {
-        SharedState {
-            users: Mutex::new(Vec::new()),
-            messages: Mutex::new(Vec::new())
-        }
+    pub fn new() -> Option<Arc<Mutex<Self>>> {
+        Some(Arc::new(Mutex::new(SharedState {
+            users: Vec::new(),
+            chats: Vec::new()
+        })))
     }
 }
-static mut USERS: SharedState = SharedState::new();
+static mut DATA: Option<Arc<Mutex<SharedState>>> = None;
 
 async fn home(body: web::Json<data::MsgUser>) -> HttpResponse {
-    let usr_ref = unsafe { &raw const USERS.users };
-    let users = unsafe { usr_ref.read() };
-    for u in users.lock().unwrap().iter().clone() {
+    #[allow(static_mut_refs)]
+    let usr_ref = unsafe { DATA.clone().unwrap() };
+    let usr_opt = usr_ref.clone();
+    let users = usr_opt.lock().unwrap().users.clone();
+
+    for u in users.iter().clone() {
         if u.clone().cmp_msg(body.0.clone()) {
-            let msg_ref = unsafe { (&raw const USERS.messages).read() };
-            if msg_ref.lock().unwrap().is_empty() {
+            let msg_ref = usr_ref.clone();
+            let chats = msg_ref.lock().unwrap().chats.clone();
+
+            if chats.is_empty() {
                 return HttpResponse::Ok().json(MsgStatus {output: "No messages yet".to_string()});
             }
             return HttpResponse::Ok().json(
-                msg_ref.lock().unwrap().last().unwrap()
+                chats.last().unwrap()
             )
         }
     }
@@ -40,13 +45,16 @@ struct MsgStatus {
 }
 
 async fn send_msg(body: web::Json<Message>) -> HttpResponse {
-    let usr_ref = unsafe { &raw const USERS.users };
-    let msg_ref = unsafe { &raw const USERS.messages };
-    let users = unsafe { usr_ref.read() };
+    #[allow(static_mut_refs)]
+    let usr_ref = unsafe { DATA.as_mut().unwrap() };
+    let usr_opt = Arc::clone(usr_ref);
+    let users = usr_opt.clone().lock().unwrap().users.clone();
 
-    for u in users.lock().unwrap().iter().clone() {
+    for u in users.iter().clone() {
         if u.clone().cmp_sent_msg(body.0.clone()) {
-            unsafe { msg_ref.read() }.get_mut().unwrap().push(body.0.clone());
+            let msg_ref = usr_ref.clone();
+            let mut chats = msg_ref.lock().unwrap();
+            chats.chats.push(body.0.clone());
             return HttpResponse::Ok().json(MsgStatus { output: "message sent".to_string() } );
         }
     }
@@ -54,9 +62,12 @@ async fn send_msg(body: web::Json<Message>) -> HttpResponse {
 }
 
 async fn login(body: web::Json<data::LoginUser>) -> HttpResponse {
-    let usr_ref = unsafe { &raw const USERS.users };
-    let users = unsafe { usr_ref.read() };
-    for u in users.lock().unwrap().iter().clone() {
+    #[allow(static_mut_refs)]
+    let usr_ref = unsafe { DATA.clone().unwrap() };
+    let usr_opt = usr_ref.clone();
+    let users = usr_opt.lock().unwrap().users.clone();
+
+    for u in users.iter().clone() {
         if u.clone().cmp_login(body.0.clone()) {
             return HttpResponse::Ok().json(u);
         }
@@ -68,9 +79,11 @@ async fn login(body: web::Json<data::LoginUser>) -> HttpResponse {
 async fn main() -> std::io::Result<()> {
     println!("starting HTTP server at http://localhost:8000");
     // "jaipal", "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027", 75
-    let usr_ref = unsafe { &raw mut USERS.users };
-    let users = unsafe { usr_ref.as_mut().unwrap() };
-    users.get_mut().unwrap().push(User::new(
+    unsafe { DATA = SharedState::new() };
+    #[allow(static_mut_refs)]
+    let usr_ref = unsafe { DATA.as_mut().unwrap() };
+    let usr_opt = Arc::clone(usr_ref);
+    usr_opt.lock().unwrap().users.push(User::new(
             "jaipal".to_string(),
             "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027".to_string(),
             75));
