@@ -29,19 +29,14 @@ async fn home(body: web::Json<data::MsgUser>) -> HttpResponse {
             let chats = msg_ref.lock().unwrap().chats.clone();
 
             if chats.is_empty() {
-                return HttpResponse::Ok().json(MsgStatus {output: "No messages yet".to_string()});
+                return HttpResponse::Ok().json(Output::new("NO_MSG"));
             }
             return HttpResponse::Ok().json(
                 chats.last().unwrap()
             )
         }
     }
-    HttpResponse::Ok().body("Invalid token")
-}
-
-#[derive(serde::Serialize)]
-struct MsgStatus {
-    pub output: String
+    HttpResponse::Ok().json(Output::new("USER_404"))
 }
 
 async fn send_msg(body: web::Json<Message>) -> HttpResponse {
@@ -55,10 +50,10 @@ async fn send_msg(body: web::Json<Message>) -> HttpResponse {
             let msg_ref = usr_ref.clone();
             let mut chats = msg_ref.lock().unwrap();
             chats.chats.push(body.0.clone());
-            return HttpResponse::Ok().json(MsgStatus { output: "message sent".to_string() } );
+            return HttpResponse::Ok().json(Output::new("MSG_SENT"));
         }
     }
-    HttpResponse::Ok().body("Invalid token")
+    HttpResponse::Ok().body("MSG_USER_404")
 }
 
 async fn login(body: web::Json<data::LoginUser>) -> HttpResponse {
@@ -72,7 +67,7 @@ async fn login(body: web::Json<data::LoginUser>) -> HttpResponse {
             return HttpResponse::Ok().json(u);
         }
     }
-    HttpResponse::Ok().json(MsgStatus { output: "User not found".to_string() } )
+    HttpResponse::Ok().json(Output::new("USER_404_LOGIN"))
 }
 
 #[actix_web::main]

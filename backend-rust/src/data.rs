@@ -84,3 +84,13 @@ pub struct MsgUser {
     pub name: String,
     pub token: String
 }
+
+#[derive(Serialize)]
+pub struct Output {
+    pub output: String
+}
+impl Output {
+    pub fn new(out: &str) -> Self {
+        Self { output: out.to_string() }
+    }
+}

@@ -17,14 +17,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def read(self):
         lenght = self.headers["Content-Length"]
-        return self.rfile.read(int(lenght) if type(lenght) == str else lenght).decode()
+        return self.rfile.read(int(lenght) if type(lenght) != int else lenght).decode()
 
     def write_str(self, data: str):
         self.wfile.write(data.encode())
 
     def write_json(self, obj: Json):
+        str_dump = dumps(obj.stringify())
         self.headers["Content-Type"] = "application/json"
-        self.write_str(dumps(obj.stringify()))
+        self.headers["Content-Length"] = str(len(str_dump))
+        self.flush_headers()
+        self.write_str(str_dump)
 
     def do_GET(self):
         if len(self.routes) == 0:

@@ -23,29 +23,24 @@ public class User implements JsonObj {
 
 	public User(String name, String password, int color) {
 		try {
-			
 			this.name = name;
 			this.password = password;
 			this.color = color;
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
 			byte[] hash = digest.digest(String.valueOf(color).getBytes(StandardCharsets.UTF_8));
-			token = String.valueOf(hash);
-			StringBuilder hexString = new StringBuilder(2 * hash.length);
-            for (int i = 0; i < hash.length; i++) {
-                String hex = Integer.toHexString(0xff & hash[i]);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            token = hexString.toString();
+			token = "";
+
+			// token = hash.fold("", { str, it -> str + "%02x".format(it) })
+			for (int i = 0; i < hash.length; i++) {
+				token += String.format("%02x", hash[i]);
+			}
 		} catch (NoSuchAlgorithmException e) {
 			System.err.println("User(...): Umimplemented");
 		}
 	}
 	@Override
 	public String toJson() {
-		return String.format("{\"auth\":\"%s\"}", token);
+		return String.format("{\"name\": \"%s\", \"token\":\"%s\"}", name, token);
 	}
 
 	public static User readJsonHome(String json) {

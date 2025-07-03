@@ -6,6 +6,21 @@ package org.example;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.json.simple.parser.*;
+import org.json.simple.JSONObject;
+
+class Output implements JsonObj {
+	public String output;
+	public Output(String out) {
+		output = out;
+	}
+
+	@Override
+	public String toJson() {
+		return String.format("{\"output\":\"%s\"}", output);
+	}
+}
+
 public class App {
 	public static void main(String[] args) {
 		ArrayList<User> users = new ArrayList<>();
@@ -17,16 +32,14 @@ public class App {
 		server.add_route("/", (request, response) -> {
 			User user = User.readJsonHome(request.body);
 			if (user == null) {
-				response.write("User does not exist, please login");
+				response.writeJson(new Output("USER_404"));
 				response.statusCode = 401;
 				return;
 			}
 			for (User el : users) {
 				if (el.name.equalsIgnoreCase(user.name) && user.token.equals(el.token)) {
 					if (messages.size() == 0) {
-						HashMap<String, String> map = new HashMap<>();
-						map.put("output", "No messages yet");
-						response.writeJson(map);
+						response.writeJson(new Output("NO_MSG"));
 					} else {
 						response.writeJson(messages.get(messages.size() - 1));
 					}
@@ -34,42 +47,38 @@ public class App {
 				}
 			}
 			response.setStatusCode(401);
-			response.write("You are not allowed to check chats");
+			response.writeJson(new Output("USER_404"));
 		});
 		server.add_route("/login", (request, response) -> {
 			User user = User.readJsonAuth(request.body);
-			HashMap<String, String> map = new HashMap<>();
 			if (user == null) {
-				map.put("auth", "AUTH_FAILED");
-				response.setStatusCode(401);
-				response.writeJson(map);
+				response.writeJson(new Output("USER_404_LOGIN"));
 				return;
 			}
 			for (User el : users) {
 				if (el.name.equalsIgnoreCase(user.name) && el.password.equals(user.password)) {
-					map.put("auth", el.token);
-					response.writeJson(map);
+					response.writeJson(el);
 					return;
 				}
 			}
 			response.setStatusCode(401);
-			response.write("You are not allowed to authenticate");
+			response.writeJson(new Output("USER_404_LOGIN"));
 		});
 		server.add_route("/send-msg", (request, response) -> {
 			Message message = Message.readJson(request.body);
 			if (message == null) {
 				response.setStatusCode(400);
-				response.write("User does not exist, please login");
+				response.writeJson(new Output("MSG_404"));
 				return;
 			}
 			for (User el : users) {
 				if (el.name.equalsIgnoreCase(message.sender) && el.token.equals(message.token)) {
 					messages.add(message);
-					response.write("Message sent");
+					response.writeJson(new Output("MSG_SENT"));
 					return;
 				}
 			}
-			response.write("Invalid member token");
+			response.writeJson(new Output("MSG_USER_404"));
 		});
 		server.start();
 	}
