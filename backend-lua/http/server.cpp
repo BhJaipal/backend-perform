@@ -46,11 +46,11 @@ std::map<int, std::string> codes = {
 };
 
 int write_res(lua_State *L) {
-	int code = lua_tonumber(L, -2);
-	std::string body = lua_tostring(L, -1);
-	std::cout << "response: " << body << "\n";
-	std::cout << "code: " << code << "\n";
+	int code = lua_tonumber(L, -1);
+	std::string headers = lua_tostring(L, -2);
+	std::string body = lua_tostring(L, -3);
 	response = "HTTP/1.1 " + std::to_string(code) + " " + codes[code] + "\r\n";
+	response += headers + "\r\n\r\n";
 	response += body;
 	return 0;
 }
@@ -102,8 +102,8 @@ public:
 				lua_pushstring(s, req.method.c_str());
 				lua_settable(s, -3);
 
-				lua_pcall(s, 1, 0, 0);
 				std::cout << req.method << ": \e[33m'" << req.path << "' \e[32m200\e[0m\n";
+				lua_call(s, 1, 0);
 
 				goto write_response;
 			}
@@ -170,7 +170,7 @@ void add_route(lua_State *L) {
  */
 void start(lua_State *L) {
 	int port = lua_tonumber(L, -1);
-	std::cout << "[Lua C]: Starting server at http://localhost:" << port << "/\n";
+	std::cout << "[C]: Starting server at http://localhost:" << port << "/\n";
 	Server(port).start(L);
 }
 

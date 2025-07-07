@@ -1,35 +1,17 @@
----@param body string
----@param headers table<string, string>
----@param code integer
-function Write(body, headers, code)
-	if code == nil then
-		code = 200
-	end
-	print(body)
-
-	local output = ""
-	local hasType = false
-	for key, value in pairs(headers) do
-		if key == "Content-Type" then
-			hasType = true
-		end
-		output = output .. key .. ": " .. value .. "\r\n"
-	end
-	-- default Content-Type is text/plain
-	if not hasType then
-		output = output .. "Content-Type: text/plain\r\n"
-	end
-	output = output .. "\r\n" .. body
-	write(output)
-end
-
 ---@param data table
 ---@param headers table<string, string>
 ---@param code integer
 function Json(data, headers, code)
 	headers["Content-Type"] = "application/json"
-	Write(data.__tostring(), headers, code)
-end ---@param path string
+	output = ""
+	for key, value in pairs(headers) do
+		output = output .. key .. ": " .. value
+	end
+	output = output .. "\r\n"
+	write(data.__tostring(), output, code)
+end
+
+---@param path string
 function Add(path)
 	add_route(path)
 end
@@ -59,12 +41,13 @@ Add("/some")
 
 ---@param req Request
 function Route_(req)
-	print("Called")
-	Write("[Lua]: Hello World from " .. req.method .. req.path .. "\n", {}, 200)
-	write(
-		"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n[Lua]: Hello World from " .. req.method .. req.path .. "\n"
-	)
+	write("[Lua]: Hello World from " .. req.method .. req.path .. "\n", "Content-Type: text/plain", 200)
 end
+
+function Route_some(req)
+	write('{"some": true}', "Content-Type: application/json", 200)
+end
+
 -- Route_some not declared so 404 Not Found
 
 -- Start server at port specified
