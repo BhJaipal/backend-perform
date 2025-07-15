@@ -1,50 +1,18 @@
 import "./style.css";
 
 import { Box, Button, Column, Icon, Img, Input, Kbd, Row } from "./dom";
+import {
+	attachKeyBind,
+	get,
+	getAll,
+	map,
+	mount,
+	Ref,
+	type Message,
+	type MessageProps,
+} from "./update";
 
-type allowedKeys = "ctrl" | "alt";
-
-let map: Array<{
-	mods: Array<allowedKeys> | allowedKeys;
-	key: string;
-	event: () => void;
-}> = [];
-
-class MountElement {
-	static selector: string;
-	static el: HTMLElement | null = null;
-	constructor(selector: string, el: HTMLElement) {
-		if (MountElement.selector == selector) {
-			console.error("An Element is already mounted, Do not mount again");
-			return;
-		}
-		const root = document.querySelector(selector);
-		if (!root) {
-			console.error("Element with selector '" + selector + "' not found");
-			return;
-		}
-		root.appendChild(el);
-		MountElement.selector = selector;
-		MountElement.el = el;
-	}
-}
-
-function mount(selector: string, el: HTMLElement) {
-	new MountElement(selector, el);
-}
-
-interface MessageProps {
-	replyTo?: Message | null;
-	type: "image" | "text";
-	sentByYou: boolean;
-}
-interface Message {
-	name: string;
-	msg: string;
-	prop: MessageProps;
-}
-
-let chats: Array<Message> = [
+let chats = new Ref<Message>("#chats-list", [
 	{
 		name: "jaipal",
 		msg: "Hello World",
@@ -55,7 +23,7 @@ let chats: Array<Message> = [
 		msg: "Error 404",
 		prop: { sentByYou: false, type: "text" },
 	},
-];
+]);
 
 document.addEventListener("keydown", (e) => {
 	map.forEach(({ mods, key, event }) => {
@@ -69,31 +37,31 @@ document.addEventListener("keydown", (e) => {
 			else if (mod[i] == "alt" && !e.altKey) return;
 		}
 		if (key == e.key) {
-			e.preventDefault();
-			e.stopPropagation();
-			event();
+			event(e);
 		}
 	});
 });
 
-function attachKeyBind(
-	mods: Array<allowedKeys> | allowedKeys,
-	key: string,
-	event: () => void
-) {
-	map.push({ mods, key, event });
-}
-
-function get<T extends HTMLElement>(selector: string): T | null {
-	// @ts-ignore: Unsafe TypeScript assertion
-	return document.querySelector<T>(selector);
-}
-
-attachKeyBind([], "Escape", () => {
+attachKeyBind([], "Escape", (e) => {
+	e.preventDefault();
 	get<HTMLDivElement>("#chat-input")?.blur();
+	if (currIndex != -1) {
+		getAll(".message")[
+			chats.getConst.length - currIndex - 1
+		]?.classList.remove("focus");
+		currIndex = -1;
+	}
 });
-attachKeyBind([], "i", () => {
+attachKeyBind([], "i", (e: KeyboardEvent) => {
+	if (get<HTMLInputElement>("#chat-input") == document.activeElement) return;
+	e.preventDefault();
 	get<HTMLInputElement>("#chat-input")?.focus();
+	if (currIndex != -1) {
+		getAll(".message")[
+			chats.getConst.length - currIndex - 1
+		]?.classList.remove("focus");
+		currIndex = -1;
+	}
 });
 
 function messageData(message: string, props: MessageProps) {
@@ -182,58 +150,62 @@ function message(author: string, message: string, props: MessageProps) {
 	}
 }
 
-let currIndex = 0;
+let currIndex = -1;
+
+function scrollUp() {
+	if (currIndex >= chats.getConst.length - 1) {
+		return;
+	}
+	if (currIndex == -1) {
+		document
+			.querySelectorAll<HTMLDivElement>(".message")
+			[chats.getConst.length - 1].classList.add("focus");
+		currIndex++;
+		return;
+	}
+	currIndex++;
+	document
+		.querySelectorAll<HTMLDivElement>(".message")
+		[chats.getConst.length - currIndex - 1].classList.add("focus");
+	document
+		.querySelectorAll<HTMLDivElement>(".message")
+		[chats.getConst.length - currIndex].classList.remove("focus");
+}
+function scrollDown() {
+	if (!currIndex) {
+		currIndex = -1;
+	}
+	if (currIndex == -1) {
+		document
+			.querySelectorAll<HTMLDivElement>(".message")
+			[chats.getConst.length - 1].classList.remove("focus");
+		return;
+	}
+	currIndex--;
+	document
+		.querySelectorAll<HTMLDivElement>(".message")
+		[chats.getConst.length - currIndex - 2].classList.remove("focus");
+	document
+		.querySelectorAll<HTMLDivElement>(".message")
+		[chats.getConst.length - currIndex - 1].classList.add("focus");
+}
 
 // Scroll Up the chats
 attachKeyBind([], "k", () => {
-	if (currIndex == chats.length - 1) {
-		return;
-	}
-	currIndex++;
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex - 1].classList.add("focus");
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex].classList.remove("focus");
+	if (get<HTMLInputElement>("#chat-input") == document.activeElement) return;
+	scrollUp();
 });
 attachKeyBind([], "ArrowUp", () => {
-	if (currIndex == chats.length - 1) {
-		return;
-	}
-	currIndex++;
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex - 1].classList.add("focus");
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex].classList.remove("focus");
+	scrollUp();
 });
 
 // Scroll down the chats
 attachKeyBind([], "j", () => {
-	if (!currIndex) {
-		return;
-	}
-	currIndex--;
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex - 2].classList.remove("focus");
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex - 1].classList.add("focus");
+	if (get<HTMLInputElement>("#chat-input") == document.activeElement) return;
+	scrollDown();
 });
 attachKeyBind([], "ArrowDown", () => {
-	if (!currIndex) {
-		return;
-	}
-	currIndex--;
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex - 2].classList.remove("focus");
-	document
-		.querySelectorAll<HTMLDivElement>(".message")
-		[chats.length - currIndex - 1].classList.add("focus");
+	scrollDown();
 });
 
 mount(
@@ -241,8 +213,9 @@ mount(
 	Box(
 		Box([
 			Column(
-				chats.map((msg) => message(msg.name, msg.msg, msg.prop)),
+				chats.on((_, msg) => message(msg.name, msg.msg, msg.prop)),
 				{
+					id: "chats-list",
 					style: {
 						height: "80vh",
 						rowGap: "20px",
@@ -264,6 +237,18 @@ mount(
 					Button(Icon("send"), {
 						id: "chat-send",
 						disabled: true,
+						onClick() {
+							let input = get<HTMLInputElement>("#chat-input");
+							if (!input) return;
+
+							chats.push({
+								name: "You",
+								msg: input.value,
+								prop: { sentByYou: true, type: "text" },
+							});
+							input.value = "";
+							this.disabled = true;
+						},
 					}),
 				],
 				{
@@ -282,4 +267,10 @@ get<HTMLInputElement>("#chat-input")?.addEventListener("keydown", (_) => {
 	} else {
 		button.disabled = true;
 	}
+});
+
+attachKeyBind([], "Enter", () => {
+	let button = get<HTMLButtonElement>("#chat-send");
+	if (!button) return;
+	button.click();
 });

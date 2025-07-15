@@ -146,24 +146,10 @@ button:focus-visible {
 	& .name {
 		color: rgb(77, 155, 129);
 	}
-	&:hover .name {
-		color: aquamarine;
-	}
-	&:hover {
-		border: 1px solid #528152;
-		color: white;
-	}
 	&.focus .name {
 		color: aquamarine;
 	}
 	&.focus {
-		border: 1px solid #528152;
-		color: white;
-	}
-	&:focus .name {
-		color: aquamarine;
-	}
-	&:focus {
 		border: 1px solid #528152;
 		color: white;
 	}

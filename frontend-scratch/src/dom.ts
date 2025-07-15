@@ -29,12 +29,11 @@ export function makeElement(
 	tag: elementsTag,
 	html: HTMLElement | string | Array<HTMLElement>,
 	props: ElementProps = {}
-) {
+): HTMLElement {
 	let btn = document.createElement(tag);
 	if (props.id) btn.id = props.id;
 	if (props.class) {
-		if (Array.isArray(props.class))
-			btn.classList.add(...props.class);
+		if (Array.isArray(props.class)) btn.classList.add(...props.class);
 		else btn.className = props.class;
 	}
 	if (html) {
