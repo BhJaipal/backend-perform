@@ -22,6 +22,7 @@ export type elementsTag =
 	| "textarea"
 	| "div"
 	| "p"
+	| "label"
 	| "kbd"
 	| "img";
 
@@ -163,5 +164,29 @@ export function Img(src: string, props: ElementProps & { alt?: string } = {}) {
 	let el = makeElement("img", "", props) as HTMLImageElement;
 	if (props.alt) el.alt = props.alt;
 	el.src = src;
+	return el;
+}
+
+export function Label(
+	html: HTMLElement | string | Array<HTMLElement>,
+	props: ElementProps & { htmlFor?: string } = {}
+) {
+	let label = makeElement("label", html, props) as HTMLLabelElement;
+	if (props.htmlFor) label.htmlFor = props.htmlFor;
+	return label;
+}
+export function Grid(
+	html: HTMLElement | string | Array<HTMLElement>,
+	type: "row" | "column",
+	size: number,
+	props: ElementProps = {}
+) {
+	let el = makeElement("div", html, {}) as HTMLDivElement;
+	el.style.display = "grid";
+	if (type === "row") {
+		el.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+	} else {
+		el.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+	}
 	return el;
 }

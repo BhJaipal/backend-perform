@@ -1,13 +1,27 @@
 import "./style.css";
 
-import { Box, Button, Column, Icon, Img, Input, Kbd, Row } from "./dom";
+import {
+	Box,
+	Button,
+	Column,
+	HTag,
+	Icon,
+	Img,
+	Input,
+	Kbd,
+	Label,
+	Row,
+} from "./dom";
 import {
 	attachKeyBind,
+	detachKeyBind,
 	get,
 	getAll,
 	map,
 	mount,
+	React,
 	Ref,
+	remount,
 	type Message,
 	type MessageProps,
 } from "./update";
@@ -40,28 +54,6 @@ document.addEventListener("keydown", (e) => {
 			event(e);
 		}
 	});
-});
-
-attachKeyBind([], "Escape", (e) => {
-	e.preventDefault();
-	get<HTMLDivElement>("#chat-input")?.blur();
-	if (currIndex != -1) {
-		getAll(".message")[
-			chats.getConst.length - currIndex - 1
-		]?.classList.remove("focus");
-		currIndex = -1;
-	}
-});
-attachKeyBind([], "i", (e: KeyboardEvent) => {
-	if (get<HTMLInputElement>("#chat-input") == document.activeElement) return;
-	e.preventDefault();
-	get<HTMLInputElement>("#chat-input")?.focus();
-	if (currIndex != -1) {
-		getAll(".message")[
-			chats.getConst.length - currIndex - 1
-		]?.classList.remove("focus");
-		currIndex = -1;
-	}
 });
 
 function messageData(message: string, props: MessageProps) {
@@ -190,87 +182,245 @@ function scrollDown() {
 		[chats.getConst.length - currIndex - 1].classList.add("focus");
 }
 
-// Scroll Up the chats
-attachKeyBind([], "k", () => {
-	if (get<HTMLInputElement>("#chat-input") == document.activeElement) return;
-	scrollUp();
+let loggedIn = new React<boolean>(false);
+
+loggedIn.onTrue((_) => {
+	// Scroll Up the chats
+	attachKeyBind([], "k", () => {
+		if (get<HTMLInputElement>("#chat-input") == document.activeElement)
+			return;
+		scrollUp();
+	});
+	attachKeyBind([], "ArrowUp", () => {
+		scrollUp();
+	});
+
+	// Scroll down the chats
+	attachKeyBind([], "j", () => {
+		if (get<HTMLInputElement>("#chat-input") == document.activeElement)
+			return;
+		scrollDown();
+	});
+	attachKeyBind([], "ArrowDown", () => {
+		scrollDown();
+	});
+	get<HTMLInputElement>("#chat-input")?.addEventListener("keydown", (_) => {
+		let button = get<HTMLButtonElement>("#chat-send");
+		if (!button) return;
+		if (get<HTMLInputElement>("#chat-input")?.value.trim()) {
+			button.disabled = false;
+		} else {
+			button.disabled = true;
+		}
+	});
+
+	attachKeyBind([], "Enter", () => {
+		let button = get<HTMLButtonElement>("#chat-send");
+		if (!button) return;
+		button.click();
+	});
+	attachKeyBind([], "Escape", (e) => {
+		e.preventDefault();
+		get<HTMLDivElement>("#chat-input")?.blur();
+		if (currIndex != -1) {
+			getAll(".message")[
+				chats.getConst.length - currIndex - 1
+			]?.classList.remove("focus");
+			currIndex = -1;
+		}
+	});
+	attachKeyBind([], "i", (e: KeyboardEvent) => {
+		if (get<HTMLInputElement>("#chat-input") == document.activeElement)
+			return;
+		e.preventDefault();
+		get<HTMLInputElement>("#chat-input")?.focus();
+		if (currIndex != -1) {
+			getAll(".message")[
+				chats.getConst.length - currIndex - 1
+			]?.classList.remove("focus");
+			currIndex = -1;
+		}
+	});
 });
-attachKeyBind([], "ArrowUp", () => {
-	scrollUp();
+loggedIn.onFalse((_) => {
+	detachKeyBind([], "k");
+	detachKeyBind([], "j");
+	detachKeyBind([], "ArrowUp");
+	detachKeyBind([], "ArrowDown");
+	detachKeyBind([], "Enter");
+	detachKeyBind([], "i");
+	detachKeyBind([], "Escape");
 });
 
-// Scroll down the chats
-attachKeyBind([], "j", () => {
-	if (get<HTMLInputElement>("#chat-input") == document.activeElement) return;
-	scrollDown();
-});
-attachKeyBind([], "ArrowDown", () => {
-	scrollDown();
-});
+loggedIn.onTrue((_) =>
+	remount(
+		"#app",
+		Box(
+			Box([
+				Column(
+					chats.on((_, msg) => message(msg.name, msg.msg, msg.prop)),
+					{
+						id: "chats-list",
+						style: {
+							height: "80vh",
+							rowGap: "20px",
+							overflowY: "scroll",
+							alignItems: "center",
+						},
+					}
+				),
+				Row(
+					[
+						Input("", {
+							id: "chat-input",
+						}),
+						Box(
+							Kbd("i", {
+								id: "chat-input-shotcut",
+							})
+						),
+						Button(Icon("send"), {
+							id: "chat-send",
+							disabled: true,
+							onClick() {
+								let input =
+									get<HTMLInputElement>("#chat-input");
+								if (!input) return;
+
+								chats.push({
+									name: "You",
+									msg: input.value,
+									prop: { sentByYou: true, type: "text" },
+								});
+								input.value = "";
+								this.disabled = true;
+							},
+						}),
+					],
+					{
+						style: { marginTop: "50px" },
+					}
+				),
+			]),
+			{
+				style: {
+					display: "flex",
+					justifyContent: "center",
+				},
+			}
+		)
+	)
+);
 
 mount(
 	"#app",
 	Box(
-		Box([
-			Column(
-				chats.on((_, msg) => message(msg.name, msg.msg, msg.prop)),
-				{
-					id: "chats-list",
-					style: {
-						height: "80vh",
-						rowGap: "20px",
-						overflowY: "scroll",
-						alignItems: "center",
-					},
-				}
-			),
-			Row(
-				[
-					Input("", {
-						id: "chat-input",
-					}),
-					Box(
-						Kbd("i", {
-							id: "chat-input-shotcut",
-						})
-					),
-					Button(Icon("send"), {
-						id: "chat-send",
-						disabled: true,
-						onClick() {
-							let input = get<HTMLInputElement>("#chat-input");
-							if (!input) return;
-
-							chats.push({
-								name: "You",
-								msg: input.value,
-								prop: { sentByYou: true, type: "text" },
-							});
-							input.value = "";
-							this.disabled = true;
+		Column(
+			[
+				Box(
+					HTag(1, "Login", {
+						style: {
+							color: "#9eedfdff",
+							textShadow: "0 0 1rem #11d3f9",
 						},
 					}),
-				],
-				{
-					style: { marginTop: "50px" },
-				}
-			),
-		])
+					{
+						style: { display: "flex", justifyContent: "center" },
+					}
+				),
+				Row(
+					[
+						Label("Name: ", {
+							htmlFor: "login-name",
+							style: {
+								display: "flex",
+								alignItems: "center",
+								fontSize: "20px",
+							},
+						}),
+						Input("", {
+							id: "login-name",
+							style: { width: "500px" },
+						}),
+					],
+					{
+						style: {
+							padding: "10px 0",
+							justifyContent: "space-evenly",
+						},
+					}
+				),
+				Row(
+					[
+						Label("Password", {
+							htmlFor: "login-password",
+							style: {
+								display: "flex",
+								alignItems: "center",
+								fontSize: "20px",
+							},
+						}),
+						Input("", {
+							type: "password",
+							id: "login-password",
+							style: { width: "500px" },
+						}),
+					],
+					{
+						style: {
+							padding: "10px 0",
+							justifyContent: "space-evenly",
+						},
+					}
+				),
+				Box(
+					Button("Submit", {
+						onClick: login,
+						disabled: true,
+						id: "login-button",
+					}),
+					{
+						style: {
+							display: "flex",
+							justifyContent: "center",
+						},
+					}
+				),
+			],
+			{ style: { width: "700px" } }
+		),
+		{
+			style: {
+				display: "flex",
+				justifyContent: "center",
+				alignItems: "start",
+			},
+		}
 	)
 );
 
-get<HTMLInputElement>("#chat-input")?.addEventListener("keydown", (_) => {
-	let button = get<HTMLButtonElement>("#chat-send");
-	if (!button) return;
-	if (get<HTMLInputElement>("#chat-input")?.value.trim()) {
-		button.disabled = false;
-	} else {
-		button.disabled = true;
+function login() {
+	let name = get<HTMLInputElement>("#login-name");
+	let password = get<HTMLInputElement>("#login-password");
+	if (name && password) {
+		console.log(name.value, password.value);
+		loggedIn.value = true;
 	}
-});
-
-attachKeyBind([], "Enter", () => {
-	let button = get<HTMLButtonElement>("#chat-send");
-	if (!button) return;
-	button.click();
+}
+loggedIn.on((val) => {
+	if (!val) {
+		let name = get<HTMLInputElement>("#login-name");
+		let password = get<HTMLInputElement>("#login-password");
+		if (!name || !password) {
+			return;
+		}
+		let btn = get<HTMLButtonElement>("#login-button");
+		if (!btn) return;
+		name.onchange = () => {
+			btn.disabled = !name.value.trim() || !password.value.trim();
+		};
+		password.onchange = () => {
+			btn.disabled = !name.value.trim() || !password.value.trim();
+		};
+	}
 });

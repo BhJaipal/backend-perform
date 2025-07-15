@@ -24,14 +24,11 @@ a:hover {
 
 body {
 	margin: 0;
-	display: flex;
-	place-items: center;
 	min-width: 320px;
 	min-height: 100vh;
 }
 
 #app {
-	max-width: 1280px;
 	margin: 0 auto;
 	padding: 2rem;
 	text-align: center;
@@ -44,13 +41,27 @@ button {
 	font-family: inherit;
 	background-color: #1a1a1a;
 	cursor: pointer;
+	border-radius: 10px;
+	height: 3.2em;
+	color: #646cff;
+	border: 1px solid #1a1a1a;
+	&:disabled {
+		color: #4549a0;
+	}
 }
-button:hover {
+button:hover:not(:disabled) {
 	border-color: #646cff;
 }
 button:focus,
 button:focus-visible {
 	outline: 4px auto -webkit-focus-ring-color;
+}
+h1 {
+	font-size: 4rem;
+}
+label {
+	color: white;
+	text-shadow: 0 0 1rem whitesmoke;
 }
 
 @font-face {
@@ -76,16 +87,29 @@ button:focus-visible {
 	-moz-font-feature-settings: "liga";
 	-moz-osx-font-smoothing: grayscale;
 }
-#chat-input {
-	border-top-left-radius: 10px;
-	border-bottom-left-radius: 10px;
-	height: 3.55em;
+input {
+	border-radius: 10px;
+	height: 2em;
 	border: 0;
+	font-size: large;
 	padding-left: 10px;
 	width: 700px;
 	border: 1px solid #1a1a1a;
-	border-right: 0px;
 	background-color: #1a1a1a;
+	&:focus {
+		outline: none;
+		border-color: #646cff;
+	}
+	&:active {
+		border-color: #646cff;
+		outline: none;
+	}
+}
+#chat-input {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+	padding: 10px;
+	border-right: 0px;
 	& + div kbd {
 		background-color: #242424;
 		color: gray;
@@ -101,14 +125,11 @@ button:focus-visible {
 	& + div {
 		background-color: #1a1a1a;
 		width: 40px;
+		height: 56px;
 		border: 1px solid #1a1a1a;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-	}
-	&:focus {
-		outline: none;
-		border-color: #646cff;
 	}
 	&:focus + div {
 		border-color: #646cff;
@@ -119,10 +140,6 @@ button:focus-visible {
 	&:focus + div + #chat-send {
 		border-color: #646cff;
 		border-left: 0px;
-		outline: none;
-	}
-	&:active {
-		border-color: #646cff;
 		outline: none;
 	}
 	&:active + div {
@@ -147,7 +164,8 @@ button:focus-visible {
 		color: rgb(77, 155, 129);
 	}
 	&.focus .name {
-		color: aquamarine;
+		color: rgb(161, 255, 224);
+		text-shadow: 0 0 1rem aquamarine;
 	}
 	&.focus {
 		border: 1px solid #528152;
@@ -161,14 +179,8 @@ button:focus-visible {
 	filter: invert(100%);
 }
 #chat-send {
-	border-top-right-radius: 10px;
-	border-bottom-right-radius: 10px;
-	height: 3.2em;
-	color: #646cff;
-	background-color: #1a1a1a;
-	border: 1px solid #1a1a1a;
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
 	border-left: 0px;
-	&:disabled {
-		color: #4549a0;
-	}
+	height: 57.5px;
 }

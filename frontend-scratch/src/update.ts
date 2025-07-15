@@ -95,6 +95,53 @@ export class Ref<T> {
 	}
 }
 
+export function defaultOnIf(value: string | number | boolean) {
+	if (typeof value === "string") value = value.trim();
+	return !!value;
+}
+
+export class React<T extends number | string | boolean> {
+	private _value: T;
+	onFn: Array<[(value: T) => unknown, number]>;
+	private onIf: (value: T) => boolean;
+
+	constructor(value: T, onIf: (value: T) => boolean = defaultOnIf) {
+		this._value = value;
+		this.onFn = [];
+		this.onIf = onIf;
+	}
+	set value(value: T) {
+		this._value = value;
+		React.rebuild(this);
+	}
+	on(fn: (value: T) => unknown) {
+		this.onFn?.push([fn, -1]);
+		React.rebuild(this);
+	}
+	onTrue(fn: (value: T) => unknown) {
+		this.onFn.push([fn, 1]);
+		if (this._value) {
+			fn(this._value);
+		}
+	}
+	onFalse(fn: (value: T) => unknown) {
+		let f2 = (value: T) => {
+			if (!value) {
+				fn(value);
+			}
+		};
+		this.onFn.push([fn, 0]);
+		f2(this._value);
+	}
+	static rebuild<T extends boolean | number | string>(ref: React<T>) {
+		ref.onFn.forEach(([fn, i]) => {
+			if (i == -1) fn(ref._value);
+			else if (i && ref.onIf(ref._value)) fn(ref._value);
+			else if (!i && !ref.onIf(ref._value)) fn(ref._value);
+		});
+	}
+}
+
 export type allowedKeys = "ctrl" | "alt";
 
 export let map: Array<{
@@ -104,10 +151,10 @@ export let map: Array<{
 }> = [];
 
 export class Mount {
-	static selector: string;
-	static el: HTMLElement | null = null;
+	static mounted: Map<string, HTMLElement> = new Map();
+
 	constructor(selector: string, el: HTMLElement) {
-		if (Mount.selector == selector) {
+		if (Mount.mounted.has(selector)) {
 			console.error("An Element is already mounted, Do not mount again");
 			return;
 		}
@@ -117,9 +164,21 @@ export class Mount {
 			return;
 		}
 		root.appendChild(el);
-		Mount.selector = selector;
-		Mount.el = el;
+		Mount.mounted.set(selector, el);
 	}
+}
+export function remount(selector: string, el: HTMLElement) {
+	let target = get(selector);
+	if (!target) {
+		console.error(`Element with selector ${selector} not found`);
+		return;
+	}
+	if (!Mount.mounted.has(selector)) {
+		console.warn("Element with selector '" + selector + "' not mounted");
+	}
+	target.innerHTML = "";
+	target.appendChild(el);
+	Mount.mounted.set(selector, el);
 }
 export function mount(selector: string, el: HTMLElement) {
 	return new Mount(selector, el);
@@ -131,6 +190,13 @@ export function attachKeyBind(
 	event: (e: KeyboardEvent) => void
 ) {
 	map.push({ mods, key, event });
+}
+
+export function detachKeyBind(
+	mods: Array<allowedKeys> | allowedKeys,
+	key: string
+) {
+	map = map.filter((m) => !(m.mods === mods && m.key === key));
 }
 
 export function get<T extends HTMLElement>(selector: string): T | null {
