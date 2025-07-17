@@ -5,6 +5,11 @@
 #include <map>
 #include <string>
 
+class JsonObj {
+public:
+	virtual Json::Value to_json();
+};
+
 enum class Mimetype { JSON, HTML, TEXT };
 
 std::string to_string(Mimetype type);
@@ -22,7 +27,7 @@ public:
 								  std::map<std::string, std::string> headers);
 
 	void write(std::string data);
-	void writeJSON(Json::Value data);
+	void writeJSON(JsonObj obj);
 	void set_mimetype(Mimetype type);
 	Mimetype get_type();
 };

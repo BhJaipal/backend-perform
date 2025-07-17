@@ -3,8 +3,9 @@
 #include <string>
 
 #include "lib.hpp"
+#include "response.hpp"
 
-class User {
+class User: public JsonObj {
 	std::string name;
 	std::string password;
 
@@ -25,7 +26,13 @@ public:
 	bool operator==(const User& other) const {
 		return name == other.name && password == other.password;
 	}
+	Json::Value to_json() override {
+		Json::Value val;
+		val["auth"] = token;
+		return token;
+	}
 };
+
 class UserLoggedIn {
 	std::string name;
 
@@ -75,7 +82,7 @@ struct Message {
 	}
 };
 
-struct MessageUser {
+struct MessageUser: public JsonObj {
 	std::string text;
 	MsgTime time;
 	std::string sender;
