@@ -42,31 +42,37 @@ public:
  */
 
 void home(HttpRequest& req, HttpResponse& res) {
+	JsonObj *o = new Output("USER_404");
 	if (!req.hasJsonBody) {
-		res.writeJSON(Output("USER_404"));
+		res.writeJSON(o);
 		std::cout << "Unknown tried to access chat\n";
+		delete o;
 		return;
 	}
 	UserLoggedIn user(req.getJsonBody());
 	if (user.token == "AUTH_FAILED") {
-		res.writeJSON(Output("USER_404"));
+		res.writeJSON(o);
 		std::cout << "\e[38;5;197m" << user.getName()
 				  << " tried to access chat but didn't have token\e[0m\n";
+		delete o;
 		return;
 	}
 	for (auto usr : users) {
 		if (user == usr) {
 			if (chats.size()) {
-				res.writeJSON(MessageUser(chats[chats.size() - 1]));
-			} else res.writeJSON(Output("NO_MSG"));
+				((Output *)o)->out = "NO_MSG";
+				res.writeJSON(&chats[chats.size() - 1]);
+			} else res.writeJSON(o);
 			printf("\e[38;5;85m%s checked messages\e[0m\n",
 				   user.getName().c_str());
+			delete o;
 			return;
 		}
 	}
 	std::cout << "\e[38;5;197m" << user.getName()
 			  << " tried to access chat but used wrong token\e[0m\n";
-	res.writeJSON(Output("USER_404"));
+	res.writeJSON(o);
+	delete o;
 }
 
 /**
@@ -88,23 +94,28 @@ void login(HttpRequest& req, HttpResponse& res) {
 				val["auth"] = usr.token;
 				printf("\e[38;5;%dm%s\e[0m logged in\n", colors[usr.token],
 					   usr.getName().c_str());
-				res.writeJSON(usr);
+				res.writeJSON(&usr);
 				break;
 			}
 		}
 	}
-	res.writeJSON(Output("USER_404_LOGIN"));
+	Output *o = new Output("USER_404_LOGIN");
+	res.writeJSON(o);
+	delete o;
 }
 
 void sendChatMsg(HttpRequest& req, HttpResponse& res) {
+	Output *o = new Output("MSG_USER_404");
 	if (!req.hasJsonBody) {
-		res.writeJSON(Output("MSG_USER_404"));
+		res.writeJSON(o);
+		delete o;
 		std::cout << "Unknown tried to send message to chat\n";
 		return;
 	}
 	Message user(req.getJsonBody());
 	if (user.token == "AUTH_FAILED") {
-		res.writeJSON(Output("MSG_USER_404"));
+		res.writeJSON(o);
+		delete o;
 		std::cout
 			<< "\e[38;5;197m" << user.getName()
 			<< " tried to send message to chat but didn't have token\e[0m\n";
@@ -112,7 +123,9 @@ void sendChatMsg(HttpRequest& req, HttpResponse& res) {
 	}
 	for (auto usr : users) {
 		if (user == usr) {
-			res.writeJSON(Output("MSG_SENT"));
+			o->out = "MSG_SENT";
+			res.writeJSON(o);
+			delete o;
 			printf("\e[38;5;%dm%s\e[0m[%d:%d]: %s\n", colors[user.sender],
 				   user.getName().c_str(), user.time.hr, user.time.min,
 				   user.text.c_str());
@@ -122,7 +135,8 @@ void sendChatMsg(HttpRequest& req, HttpResponse& res) {
 	}
 	std::cout << "\e[38;5;197m" << user.getName()
 			  << " tried to access chat but used wrong token\e[0m\n";
-	res.writeJSON(Output("MSG_SENT"));
+	res.writeJSON(o);
+	delete o;
 }
 
 int main() {

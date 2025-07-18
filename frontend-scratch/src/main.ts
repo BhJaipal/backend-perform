@@ -399,28 +399,71 @@ mount(
 	)
 );
 
-function login() {
+async function login() {
 	let name = get<HTMLInputElement>("#login-name");
 	let password = get<HTMLInputElement>("#login-password");
-	if (name && password) {
-		console.log(name.value, password.value);
-		loggedIn.value = true;
+	if (!(name && password)) {
+		return;
+	}
+	let res = await fetch("http://localhost:8000/login", {
+		method: "POST",
+		headers: {
+			"Access-Control-Expose-Headers": "Access-Control-Allow-Origin",
+			"Access-Control-Allow-Origin": "*",
+			Origin: "*",
+			"Access-Control-Allow-Credentials": "true",
+			"Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			name: name.value,
+			password: password.value,
+		}),
+	});
+	let data: { output?: "USER_404_LOGIN"; token?: string } = await res.json();
+	if (data.output) {
+		remount(
+			"#app",
+			Box(HTag(1, "User not found"), {
+				style: {
+					color: "#ff6767ff",
+					textShadow: "0 0 1rem #ff4949ff",
+					textAlign: "center",
+				},
+			})
+		);
+		return;
+	}
+
+	if (data.token) {
+		remount(
+			"#app",
+			Box(HTag(1, "Login success!"), {
+				style: {
+					color: "#9eedfdff",
+					textShadow: "0 0 1rem #11d3f9",
+					textAlign: "center",
+				},
+			})
+		);
+		setTimeout(() => {
+			loggedIn.value = true;
+		}, 2000);
 	}
 }
-loggedIn.on((val) => {
-	if (!val) {
-		let name = get<HTMLInputElement>("#login-name");
-		let password = get<HTMLInputElement>("#login-password");
-		if (!name || !password) {
-			return;
-		}
-		let btn = get<HTMLButtonElement>("#login-button");
-		if (!btn) return;
-		name.onchange = () => {
-			btn.disabled = !name.value.trim() || !password.value.trim();
-		};
-		password.onchange = () => {
-			btn.disabled = !name.value.trim() || !password.value.trim();
-		};
+loggedIn.onFalse((val) => {
+	let name = get<HTMLInputElement>("#login-name");
+	let password = get<HTMLInputElement>("#login-password");
+	if (!name || !password) {
+		return;
 	}
+	let btn = get<HTMLButtonElement>("#login-button");
+	if (!btn) return;
+
+	name.onkeydown = () => {
+		btn.disabled = !name.value.trim() || !password.value.trim();
+	};
+	password.onkeydown = () => {
+		btn.disabled = !name.value.trim() || !password.value.trim();
+	};
 });

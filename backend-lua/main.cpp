@@ -41,20 +41,22 @@ int bind_lua(lua_State *L) {
 	lua_pushnumber(L, (lua_Number)bind_out);
 	return 1;
 }
-
 void accept_lua() {
 	client_fd = accept(server_fd, (struct sockaddr*)&client, &client_len);
 }
+void loop_Server(lua_State *L) {
+	lua_getglobal(L, "Listen");
+	if (!lua_isfunction(L, -1)) return;
+	accept_lua();
+	lua_call(L, 0, 0);
+	loop_Server(L);
+}
+
 int listen_lua(lua_State *L) {
 	int count = lua_tonumber(L, -1);
-	int out = listen(server_fd, count);
+	listen(server_fd, count);
 
-	lua_getglobal(L, "Listen");
-	if (!lua_isfunction(L, -1)) return 0;
-	while (1) {
-		accept_lua();
-		lua_call(L, 0, 0);
-	}
+	loop_Server(L);
 	return 1;
 }
 
@@ -131,10 +133,11 @@ int read_lua(lua_State *L) {
 
 	return 1;
 }
-void write_lua(lua_State *L) {
+int write_lua(lua_State *L) {
 	std::string buff = lua_tostring(L, -1);
 	write(client_fd, buff.c_str(), buff.size());
 	close(client_fd);
+	return 1;
 }
 
 int main(int argc, char **argv) {
@@ -157,20 +160,5 @@ int main(int argc, char **argv) {
 	lua_setglobal(l, "write");
 
 	luaL_dofile(l, "test.lua");
-	lua_getglobal(l, "JsonParse");
-	if (!lua_isfunction(l, -1)) {
-		std::cout << "Ah sh\n";
-		exit(1);
-	}
-	lua_newtable(l);
-	lua_pushstring(l, "name");
-	lua_pushstring(l, "jaipal");
-	lua_settable(l, -3);
-	lua_pushstring(l, "age");
-	lua_pushnumber(l, 20);
-	lua_settable(l, -3);
-
-	lua_call(l, 1, 0);
-	std::cout << lua_tostring(l, 0);
 	lua_close(l);
 }

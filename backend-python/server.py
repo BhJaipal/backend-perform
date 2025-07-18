@@ -1,4 +1,4 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, TypeAlias
 from json import dumps
 
@@ -51,7 +51,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(404, "Not Found")
 
 
-class MyServer(HTTPServer):
+class MyServer(ThreadingHTTPServer):
     routes: dict[str, Callable[[Handler], None]] = {}
 
     def __init__(self, port: int) -> None:

@@ -35,6 +35,20 @@ type MessageUser struct {
 		Min int `json:"min"`
 	} `json:"timestamp"`
 }
+
+type Output struct {
+	Out string `json:"output"`
+}
+
+func WriteJson(obj any, res http.ResponseWriter) {
+	by, err := json.Marshal(obj)
+	if err != nil {
+		fmt.Printf("Can't convert to JSON")
+		return
+	}
+	res.Write(by)
+}
+
 var chats []Message;
 var users []User;
 
@@ -47,7 +61,7 @@ func sendMsg(res http.ResponseWriter,  req *http.Request) {
 	json.NewDecoder(req.Body).Decode(&msg)
 	does_exist := color[msg.Author]
 	if does_exist == 0 {
-		res.Write([]byte("User does not exist, please login"))
+		WriteJson(Output{"MSG_USER_404"}, res)
 		return
 	}
 	var bs []byte
@@ -58,12 +72,12 @@ func sendMsg(res http.ResponseWriter,  req *http.Request) {
 
 	out := hasher.Sum(nil)
 	if fmt.Sprintf("%x", out) != msg.Token {
-		res.Write([]byte("Invalid member token"))
+		WriteJson(Output{"MSG_USER_404"}, res)
 	} else {
 		chats = append(chats, msg)
 		fmt.Printf("\033[38;5;%dm%s\033[0m: %s (%d:%d)\n", color[msg.Author], msg.Author,
 			msg.Msg, msg.Timestamp.Hour, msg.Timestamp.Min)
-		res.Write([]byte("Message sent"))
+		WriteJson(Output{"MSG_SENT"}, res)
 	}
 }
 
@@ -73,12 +87,13 @@ func random_num_gen() int {
 	var num int = (rand.Intn(15) + 1) * 16
 	return num
 }
-func show(res http.ResponseWriter,  req *http.Request) {
+
+func home(res http.ResponseWriter,  req *http.Request) {
 	var msg UserLoggedIn;
 	json.NewDecoder(req.Body).Decode(&msg)
 	does_exist := color[msg.Name]
 	if does_exist == 0 {
-		res.Write([]byte("User does not exist, please login"))
+		WriteJson(Output{"USER_404"}, res)
 		return
 	}
 	hasher := crypto.SHA256.New()
@@ -87,28 +102,19 @@ func show(res http.ResponseWriter,  req *http.Request) {
 	hasher.Write(bs)
 	out := hasher.Sum(nil)
 	if fmt.Sprintf("%x", out) != msg.Token {
-		res.Write([]byte("Invalid member token"))
+		WriteJson(Output{"USER_404"}, res)
 	} else if (len(chats) != 0) {
 		last := chats[len(chats) - 1]
 		lastToUser := MessageUser{Msg: last.Msg, Author: last.Author, Timestamp: last.Timestamp}
-		out, err := json.Marshal(lastToUser)
-		if err != nil {
-			fmt.Println("Can't send last message")
-		}
-		res.Write(out)
+		WriteJson(lastToUser, res)
 	} else {
 		fmt.Println("No message yet")
-		out, err := json.Marshal(map[string]string{"output": "No messages yet"})
-		if err != nil {
-			fmt.Println("Can't send last message")
-		}
-		res.Write(out)
+		WriteJson(Output{"NO_MSG"}, res)
 	}
 }
-func auth(res http.ResponseWriter,  req *http.Request) {
+func login(res http.ResponseWriter,  req *http.Request) {
 	var msg User;
 	json.NewDecoder(req.Body).Decode(&msg);
-	auth := "AUTH_FAILED"
 
 	for i := range(len(users)) {
 		if users[i].Name == msg.Name && users[i].Password == msg.Password {
@@ -118,15 +124,12 @@ func auth(res http.ResponseWriter,  req *http.Request) {
 			fmt.Appendf(bs, "%d", does_exist)
 			hasher.Write(bs)
 			out := hasher.Sum(nil)
-			auth = fmt.Sprintf("%x", out)
+			auth := fmt.Sprintf("%x", out)
+			WriteJson(map[string]string{"auth": auth}, res)
 			break
 		}
 	}
-	out, err := json.Marshal(map[string]string{"auth": auth})
-	if err != nil {
-		fmt.Println("Can't authenticate, JSON to byte conversion error: ", auth);
-	}
-	res.Write(out)
+	WriteJson(Output{"USER_404_LOGIN"}, res)
 }
 
 func main() {
@@ -136,7 +139,7 @@ func main() {
 	color["jaipal"] = 75;
 	color["hema"] = random_num_gen();
 	http.HandleFunc("/send-msg", sendMsg)
-	http.HandleFunc("/", show)
-	http.HandleFunc("/login", auth)
+	http.HandleFunc("/", home)
+	http.HandleFunc("/login", login)
 	http.ListenAndServe(":8000", nil)
 }

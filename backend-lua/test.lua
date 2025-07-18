@@ -24,6 +24,7 @@ local codes = {
 	[308] = "Permanent Redirect",
 }
 
+---@return string
 ---@param data table
 function JsonParse(data)
 	local isArray = false
@@ -42,14 +43,19 @@ function JsonParse(data)
 			if type(value) == "string" then
 				str = str .. '"' .. value .. '"'
 			elseif type(value) == "number" or type(value) == "boolean" then
-				str = str .. value
+				if value == true then
+					str = str .. "true"
+				elseif value == false then
+					str = str .. "false"
+				else
+					str = str .. value
+				end
 			elseif type(value) == "nil" then
 				str = str .. "null"
 			else
 				str = str .. JsonParse(value)
 			end
 			first = false
-			print("[Lua]: " .. str)
 			goto continue
 		end
 
@@ -61,7 +67,13 @@ function JsonParse(data)
 		if type(value) == "string" then
 			str = str .. '"' .. value .. '"'
 		elseif type(value) == "number" or type(value) == "boolean" then
-			str = str .. value
+			if value == true then
+				str = str .. "true"
+			elseif value == false then
+				str = str .. "false"
+			else
+				str = str .. value
+			end
 		elseif type(value) == "nil" then
 			str = str .. "null"
 		else
@@ -69,7 +81,6 @@ function JsonParse(data)
 		end
 		::continue::
 	end
-	print("[Lua]: " .. str)
 
 	if isArray then
 		str = str .. "]"
@@ -86,10 +97,9 @@ end
 function WriteJson(code, data, headers)
 	headers["Content-Type"] = "application/json"
 
-	-- json = JsonParse(data)
-	-- print(json)
+	local json = JsonParse(data)
 
-	Write(code, "" .. data, headers)
+	Write(code, json, headers)
 end
 
 ---@param code integer
@@ -108,12 +118,10 @@ if socket() < 0 then
 	print("[Lua]: Cannot bind socket")
 	os.exit(1)
 end
---[[
 if bind(8000) < 0 then
 	print("[Lua]: Cannot bind server, port is probably busy")
 	os.exit(1)
 end
---]]
 function Listen()
 	---@class Request
 	---@field path string
@@ -154,11 +162,14 @@ function Listen()
 		Write(200, "Hello World", { ["Content-Type"] = "text/plain" })
 	elseif req.path == "/data" then
 		WriteJson(200, {
-			["name"] = "Jaipal",
+			name = "Jaipal",
+			age = 20,
+			reading = false,
+			hobby = { "coding", "eating" },
 		}, { ["Content-Type"] = "text/plain" })
 	else
 		Write(404, "'" .. req.path .. "' Not Found", {})
 	end
 end
 
--- listen(5)
+listen(5)

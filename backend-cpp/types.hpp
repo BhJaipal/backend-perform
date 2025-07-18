@@ -59,7 +59,7 @@ public:
 	char min;
 };
 
-struct Message {
+struct Message: public JsonObj {
 	std::string text;
 	MsgTime time;
 	std::string sender;
@@ -79,28 +79,6 @@ struct Message {
 
 	bool operator==(const User& other) const {
 		return sender == other.getName() && token == other.token;
-	}
-};
-
-struct MessageUser: public JsonObj {
-	std::string text;
-	MsgTime time;
-	std::string sender;
-
-	MessageUser(std::string t, MsgTime tm, std::string s)
-		: text(t), time(tm), sender(s) {}
-	MessageUser(Message msg) {
-		text = msg.text;
-		time.hr = msg.time.hr;
-		time.min = msg.time.min;
-		sender = msg.sender;
-	}
-
-	MessageUser(Json::Value val) {
-		text = val["msg"].asString();
-		time.hr = val["timestamp"]["hr"].asInt();
-		time.min = val["timestamp"]["min"].asInt();
-		sender = val["author"].asString();
 	}
 	Json::Value to_json() {
 		Json::Value val;

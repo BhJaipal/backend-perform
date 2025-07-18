@@ -37,8 +37,8 @@ void HttpResponse::write(std::string data) { body = data; }
 
 Mimetype HttpResponse::get_type() { return type; }
 
-void HttpResponse::writeJSON(JsonObj data) {
-	body = data.to_json().toStyledString();
+void HttpResponse::writeJSON(JsonObj *data) {
+	body = data->to_json().toStyledString();
 	set_mimetype(Mimetype::JSON);
 }
 void HttpResponse::set_mimetype(Mimetype type) { this->type = type; }

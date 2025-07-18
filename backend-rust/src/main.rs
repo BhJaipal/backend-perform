@@ -1,4 +1,5 @@
-use actix_web::{App, HttpServer, HttpResponse, web};
+use actix_web::{App, HttpServer, HttpResponse, web, post};
+use actix_cors::Cors;
 use std::sync::{Mutex, Arc};
 mod data;
 use data::*;
@@ -17,6 +18,7 @@ impl SharedState {
 }
 static mut DATA: Option<Arc<Mutex<SharedState>>> = None;
 
+#[post("/")]
 async fn home(body: web::Json<data::MsgUser>) -> HttpResponse {
     #[allow(static_mut_refs)]
     let usr_ref = unsafe { DATA.clone().unwrap() };
@@ -29,16 +31,24 @@ async fn home(body: web::Json<data::MsgUser>) -> HttpResponse {
             let chats = msg_ref.lock().unwrap().chats.clone();
 
             if chats.is_empty() {
-                return HttpResponse::Ok().json(Output::new("NO_MSG"));
+                return HttpResponse::Ok()
+                    .append_header(("Access-Control-Allow-Origin", "*"))
+                    .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+                    .json(Output::new("NO_MSG"));
             }
-            return HttpResponse::Ok().json(
-                chats.last().unwrap()
-            )
+            return HttpResponse::Ok()
+                .append_header(("Access-Control-Allow-Origin", "*"))
+                .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+                .json(chats.last().unwrap())
         }
     }
-    HttpResponse::Ok().json(Output::new("USER_404"))
+    HttpResponse::Ok()
+        .append_header(("Access-Control-Allow-Origin", "*"))
+        .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+        .json(Output::new("USER_404"))
 }
 
+#[post("/send-msg")]
 async fn send_msg(body: web::Json<Message>) -> HttpResponse {
     #[allow(static_mut_refs)]
     let usr_ref = unsafe { DATA.as_mut().unwrap() };
@@ -50,12 +60,19 @@ async fn send_msg(body: web::Json<Message>) -> HttpResponse {
             let msg_ref = usr_ref.clone();
             let mut chats = msg_ref.lock().unwrap();
             chats.chats.push(body.0.clone());
-            return HttpResponse::Ok().json(Output::new("MSG_SENT"));
+            return HttpResponse::Ok()
+                .append_header(("Access-Control-Allow-Origin", "*"))
+                .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+                .json(Output::new("MSG_SENT"));
         }
     }
-    HttpResponse::Ok().body("MSG_USER_404")
+    HttpResponse::Ok()
+        .append_header(("Access-Control-Allow-Origin", "*"))
+        .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+        .body("MSG_USER_404")
 }
 
+#[post("/login")]
 async fn login(body: web::Json<data::LoginUser>) -> HttpResponse {
     #[allow(static_mut_refs)]
     let usr_ref = unsafe { DATA.clone().unwrap() };
@@ -64,10 +81,16 @@ async fn login(body: web::Json<data::LoginUser>) -> HttpResponse {
 
     for u in users.iter().clone() {
         if u.clone().cmp_login(body.0.clone()) {
-            return HttpResponse::Ok().json(u);
+            return HttpResponse::Ok()
+                .append_header(("Access-Control-Allow-Origin", "*"))
+                .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+                .json(u);
         }
     }
-    HttpResponse::Ok().json(Output::new("USER_404_LOGIN"))
+    HttpResponse::Ok()
+        .append_header(("Access-Control-Allow-Origin", "*"))
+        .append_header(("Access-Control-Allow-Methods", "GET,POST"))
+        .json(Output::new("USER_404_LOGIN"))
 }
 
 #[actix_web::main]
@@ -83,11 +106,14 @@ async fn main() -> std::io::Result<()> {
             "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027".to_string(),
             75));
 
+
     HttpServer::new(|| {
+        let cors = Cors::default().allow_any_origin();
         App::new()
-            .route("/", web::get().to(home))
-            .route("/send-msg", web::get().to(send_msg))
-            .route("/login", web::get().to(login))
+            .wrap(cors)
+            .service(home)
+            .service(login)
+            .service(send_msg)
     })
     .bind(("127.0.0.1", 8000))?
         .run().await

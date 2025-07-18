@@ -7,7 +7,8 @@
 
 class JsonObj {
 public:
-	virtual Json::Value to_json();
+	virtual ~JsonObj() = default;
+	virtual Json::Value to_json() = 0;
 };
 
 enum class Mimetype { JSON, HTML, TEXT };
@@ -27,7 +28,7 @@ public:
 								  std::map<std::string, std::string> headers);
 
 	void write(std::string data);
-	void writeJSON(JsonObj obj);
+	void writeJSON(JsonObj *obj);
 	void set_mimetype(Mimetype type);
 	Mimetype get_type();
 };
