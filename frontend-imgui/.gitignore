@@ -1,3 +1,5 @@
 !.clangd
 *.o
 a.out
+.cache
+build

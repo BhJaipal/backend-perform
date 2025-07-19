@@ -1,5 +1,5 @@
 IMGUI_DIR = imgui
-OpenGl = $$(pkg-config --libs glfw3 glesv2)
+OpenGl = $$(pkg-config --libs --cflags glfw3 glesv2 jsoncpp)
 CXXFLAGS = -I$(IMGUI_DIR) -std=c++23 -g -Wall -Wformat -lm $(OpenGl)
 Main ?= ./main.cpp
 

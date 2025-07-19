@@ -1,11 +1,17 @@
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_glfw.h"
-#include "imgui/backends/imgui_impl_opengl3.h"
-#include <backends/imgui_impl_opengl3.h>
+#include "json/value.h"
 #include <GLFW/glfw3.h>
 #include <cctype>
 #include <iostream>
+#include <jsoncpp/json/reader.h>
+#include <map>
+#include <netinet/in.h>
 #include <string>
+#include <sys/socket.h>
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
+#include "cpp-httplib/httplib.h"
+#include <json/json.h>
 
 static void glfw_error_callback(int error, const char *description) {
 	std::cerr << "Glfw Error " << error << description << "\n";
@@ -53,6 +59,13 @@ std::string trim(char *src) {
 	return out;
 }
 
+enum LoginStatus {
+	LoginSuccess,
+	LoginFailed,
+	LoginNotYet
+};
+LoginStatus login_status = LoginNotYet;
+
 void submit(char c_name[21], char c_pass[65]) {
 	std::string name = trim(c_name),
 		pass = trim(c_pass);
@@ -67,12 +80,25 @@ void submit(char c_name[21], char c_pass[65]) {
 		return;
 	}
 	status = FormAlert::Filled;
+
+	std::string json = "{\"name\":\"" + name + "\",\"password\":\"" + pass + "\"}";
+	httplib::Client client("http://localhost:8000");
+	httplib::Result res = client.Post("/login", json, "application/json");
+	Json::CharReaderBuilder reader;
+    std::string errs;
+    Json::Value jsonData;
+    std::istringstream s(res->body);
+    Json::parseFromStream(reader, s, &jsonData, &errs);
+
+	if (jsonData.get("output", "NONE").asString() != "NONE") {
+		login_status = LoginFailed;
+		return;
+	}
+	strncpy(c_pass, jsonData["auth"].asCString(), 64);
+	login_status = LoginSuccess;
 }
 
-char name[21] = "";
-char pass[65] = "";
-
-void login() {
+void login(char name[21], char pass[65]) {
 	ImGui::BeginTable("table1", 2);
 	ImGui::TableNextRow();
 
@@ -112,9 +138,52 @@ void login() {
 
 	ImGui::EndTable();
 }
-void chatPage() {}
+Json::Value get_msg(std::string name, std::string token) {
+	std::string json = "{\"name\":\"" + name + "\",\"token\":\"" + token + "\"}";
+	static httplib::Client client("http://localhost:8000");
+	httplib::Result res = client.Post("/", json, "application/json");
+	Json::CharReaderBuilder reader;
+    std::string errs;
+    Json::Value jsonData;
+    std::istringstream s(res->body);
+    Json::parseFromStream(reader, s, &jsonData, &errs);
 
-bool loggedIn = false;
+	return jsonData;
+}
+
+void chatPage(std::string name, std::string pass, char chatInput[100]) {
+	if (login_status == LoginFailed) {
+		ImGui::BeginTable("table1", 3);
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::TableNextColumn();
+		ImGui::Text("Please Retry login by restarting app");
+		ImGui::EndTable();
+		return;
+	}
+	Json::Value msg = get_msg(name, pass);
+	if (msg.get("output", "NONE").asString() != "NONE" && msg["output"] == "USER_404") {
+		ImGui::BeginTable("table1", 3);
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::TableNextColumn();
+		ImGui::Text("User does not exist or Invalid token, Try re-logging in again");
+		ImGui::EndTable();
+		return;
+	}
+	ImGui::PushItemWidth(-1);
+	ImGui::InputText("chat-input", chatInput, 100);
+	ImGui::PopItemWidth();
+	ImGui::BeginTable("table1", 3);
+	ImGui::TableNextRow();
+	ImGui::TableNextColumn();
+	if (msg.get("output", "NONE").asString() != "NONE" && msg["output"] != "USER_404")
+		ImGui::Text("No messages yet");
+	else
+		ImGui::Text("%s: %s", msg["author"].asCString(), msg["msg"].asCString());
+	ImGui::TableNextColumn();
+	ImGui::EndTable();
+}
 
 int main() {
 	glfwSetErrorCallback(glfw_error_callback);
@@ -140,6 +209,8 @@ int main() {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
+	char chatInput[100];
+
 	ImGui::StyleColorsDark();
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -147,6 +218,9 @@ int main() {
 
 	io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
+
+	char name[21] = "";
+	char pass[65] = "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027";
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	while (!glfwWindowShouldClose(window)) {
@@ -158,9 +232,9 @@ int main() {
 
 		// render your GUI
 		ImGui::Begin("Demo window");
-		if (!loggedIn)
-			login();
-		else chatPage();
+		if (login_status == LoginNotYet)
+			login(name, pass);
+		else chatPage(name, pass, chatInput);
 		
 		ImGui::End();
 
