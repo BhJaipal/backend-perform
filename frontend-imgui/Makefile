@@ -8,22 +8,21 @@ Libs = $(IMGUI_DIR)/imgui.cpp \
 		$(IMGUI_DIR)/imgui_tables.cpp \
 		$(IMGUI_DIR)/imgui_widgets.cpp
 
-Backend = $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
-BackendOut = imgui_impl_glfw.o imgui_impl_opengl3.o
+Objs := $(foreach lib,$(Libs), $$(basename $(lib) | sed 's/.cpp/.o/g'))
 
-Out := $(foreach lib,$(Libs), $(addsuffix .o, $(basename $(lib))))
-Objs := $(foreach lib,$(Out), $$(echo $(lib) | sed 's/imgui\///g'))
+Backend = $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
+BackendOut := $(foreach lib, $(Backend), $$(basename $(lib) | sed 's/.cpp/.o/g'))
 
 compile:
-	g++ $(CXXFLAGS) -c $$(echo $(Target) | sed 's/.o/.cpp/g')
+	g++ -c $(Target)
 
 build:
-	for i in $(Out); do make compile Target=$$i; done
+	for i in $(Libs); do make compile Target=$$i; done
 
 backend:
 	for i in $(Backend); do \
-		g++ $(CXXFLAGS) $$i -c -I$(IMGUI_DIR); \
+		g++ $(CXXFLAGS) $$i -c; \
 		done
 
 all:
-	g++ $(BackendOut) $(Main) $(Objs) $(CXXFLAGS) -I$(IMGUI_DIR)
+	g++ $(BackendOut) $(Main) $(Objs) $(CXXFLAGS)

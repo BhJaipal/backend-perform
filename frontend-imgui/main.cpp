@@ -1,9 +1,10 @@
 #include "json/value.h"
 #include <GLFW/glfw3.h>
 #include <cctype>
+#include <cstdio>
+#include <ctime>
 #include <iostream>
 #include <jsoncpp/json/reader.h>
-#include <map>
 #include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
@@ -12,6 +13,8 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "cpp-httplib/httplib.h"
 #include <json/json.h>
+#include <unistd.h>
+#include <vector>
 
 static void glfw_error_callback(int error, const char *description) {
 	std::cerr << "Glfw Error " << error << description << "\n";
@@ -64,9 +67,9 @@ enum LoginStatus {
 	LoginFailed,
 	LoginNotYet
 };
-LoginStatus login_status = LoginNotYet;
+bool one_time_load = true;
 
-void submit(char c_name[21], char c_pass[65]) {
+void submit(char c_name[21], char c_pass[65], LoginStatus *login_status) {
 	std::string name = trim(c_name),
 		pass = trim(c_pass);
 	if (name.empty() && pass.empty()) {
@@ -91,14 +94,15 @@ void submit(char c_name[21], char c_pass[65]) {
     Json::parseFromStream(reader, s, &jsonData, &errs);
 
 	if (jsonData.get("output", "NONE").asString() != "NONE") {
-		login_status = LoginFailed;
+		*login_status = LoginFailed;
 		return;
 	}
-	strncpy(c_pass, jsonData["auth"].asCString(), 64);
-	login_status = LoginSuccess;
+	strncpy(c_pass, jsonData["token"].asCString(), 64);
+	*login_status = LoginSuccess;
+	one_time_load = true;
 }
 
-void login(char name[21], char pass[65]) {
+void login(char name[21], char pass[65], LoginStatus *login_status) {
 	ImGui::BeginTable("table1", 2);
 	ImGui::TableNextRow();
 
@@ -126,14 +130,14 @@ void login(char name[21], char pass[65]) {
 	ImGui::Text("Password:");
 	ImGui::TableNextColumn();
 	ImGui::PushItemWidth(-1);
-	if (ImGui::InputText("pass", pass, 64)) {
+	if (ImGui::InputText("pass", pass, 65)) {
 		status |= trim(pass).empty() ? FormAlert::EmptyPass : FormAlert::Started;
 	}
 	ImGui::PopItemWidth();
 
 	ImGui::TableNextColumn();
 	if (ImGui::Button("Submit")) {
-		submit(name, pass);
+		submit(name, pass, login_status);
 	}
 
 	ImGui::EndTable();
@@ -151,7 +155,37 @@ Json::Value get_msg(std::string name, std::string token) {
 	return jsonData;
 }
 
-void chatPage(std::string name, std::string pass, char chatInput[100]) {
+struct TimeStamp {
+	char hour;
+	char min;
+};
+
+struct Chat {
+	std::string msg;
+	std::string author;
+	TimeStamp time;
+
+	Chat(Json::Value chat) {
+		msg = chat["msg"].asString();
+		author = chat["author"].asString();
+		time.hour = chat["timestamp"]["hr"].asInt();
+		time.min = chat["timestamp"]["min"].asInt();
+	}
+};
+
+std::vector<Chat> chats;
+
+void load_chats(std::string name, std::string pass, int *user_auth_failed) {
+	Json::Value msg = get_msg(name, pass);
+	if (msg.get("output", "NONE").asString() == "NONE") {
+		chats.push_back(Chat(msg));
+	} else {
+		if (msg["output"].asString() == "USER_404")
+			*user_auth_failed = true;
+	}
+}
+
+void chatPage(std::string name, std::string pass, char chatInput[100], int *user_auth_failed, LoginStatus login_status) {
 	if (login_status == LoginFailed) {
 		ImGui::BeginTable("table1", 3);
 		ImGui::TableNextRow();
@@ -161,28 +195,85 @@ void chatPage(std::string name, std::string pass, char chatInput[100]) {
 		ImGui::EndTable();
 		return;
 	}
-	Json::Value msg = get_msg(name, pass);
-	if (msg.get("output", "NONE").asString() != "NONE" && msg["output"] == "USER_404") {
+	if (*user_auth_failed) {
 		ImGui::BeginTable("table1", 3);
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
+		ImGui::Text("User does not exist or Invalid token");
+		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
-		ImGui::Text("User does not exist or Invalid token, Try re-logging in again");
+		ImGui::Text("Try re-logging in again");
 		ImGui::EndTable();
 		return;
 	}
-	ImGui::PushItemWidth(-1);
-	ImGui::InputText("chat-input", chatInput, 100);
-	ImGui::PopItemWidth();
 	ImGui::BeginTable("table1", 3);
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
-	if (msg.get("output", "NONE").asString() != "NONE" && msg["output"] != "USER_404")
-		ImGui::Text("No messages yet");
-	else
-		ImGui::Text("%s: %s", msg["author"].asCString(), msg["msg"].asCString());
+	ImGui::PushItemWidth(-1);
+	ImGui::InputText("chat-input", chatInput, 100);
+	ImGui::PopItemWidth();
 	ImGui::TableNextColumn();
 	ImGui::EndTable();
+
+	if (ImGui::Button("send-chat")) {
+		std::string chat = trim(chatInput);
+		if (chat.empty()) return;
+
+		httplib::Client cli("http://localhost:8000");
+		Json::Value data;
+		data["msg"] = chatInput;
+		data["author"] = name;
+		data["token"] = pass;
+
+		Json::Value time_;
+		{
+			time_t rawtime;
+		    struct tm *timeinfo;
+			time(&rawtime);
+		    timeinfo = localtime(&rawtime);
+	        timeinfo->tm_year += 1900;
+			timeinfo->tm_mon += 1;
+			time_["hr"] = timeinfo->tm_hour;
+			time_["min"] = timeinfo->tm_min;
+		}
+		data["timestamp"] = time_;
+		httplib::Result res = cli.Post("/send-msg", data.toStyledString(), "application/json");
+
+		Json::CharReaderBuilder reader;
+		std::string errs;
+		Json::Value jsonData;
+		std::istringstream s(res->body);
+		Json::parseFromStream(reader, s, &jsonData, &errs);
+
+		if (jsonData["output"] == "MSG_SENT") {
+			printf("Message Sent Successfully");
+			load_chats(name, pass, user_auth_failed);
+		} else {
+			printf("Couldn't send token, Invalid token");
+		}
+		return;
+	}
+
+	ImGui::BeginTable("table2", 3);
+	if (chats.size() == 0) {
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+			ImGui::Text("No messages yet");
+		ImGui::TableNextColumn();
+		ImGui::EndTable();
+	} else {
+		for (auto msg : chats) {
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			if (msg.author != name)
+				ImGui::Text("%s: %s", msg.author.c_str(), msg.msg.c_str());
+			else {
+				ImGui::TableNextColumn();
+				ImGui::Text("You: %s", msg.msg.c_str());
+			}
+		}
+		ImGui::EndTable();
+	}
 }
 
 int main() {
@@ -209,7 +300,7 @@ int main() {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-	char chatInput[100];
+	char chatInput[100] = "";
 
 	ImGui::StyleColorsDark();
 	// Setup Platform/Renderer backends
@@ -218,9 +309,11 @@ int main() {
 
 	io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
+	LoginStatus login_status = LoginNotYet;
 
 	char name[21] = "";
 	char pass[65] = "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027";
+	int user_auth_failed = false;
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	while (!glfwWindowShouldClose(window)) {
@@ -233,8 +326,14 @@ int main() {
 		// render your GUI
 		ImGui::Begin("Demo window");
 		if (login_status == LoginNotYet)
-			login(name, pass);
-		else chatPage(name, pass, chatInput);
+			login(name, pass, &login_status);
+		else {
+			if (one_time_load) {
+				load_chats(name, pass, &user_auth_failed);
+				one_time_load = false;
+			}
+			chatPage(name, pass, chatInput, &user_auth_failed, login_status);
+		}
 		
 		ImGui::End();
 
