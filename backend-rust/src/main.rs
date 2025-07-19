@@ -105,6 +105,10 @@ async fn main() -> std::io::Result<()> {
             "jaipal".to_string(),
             "dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027".to_string(),
             75));
+    usr_opt.lock().unwrap().users.push(User::new(
+            "hema".to_string(),
+            "somepass".to_string(),
+            75));
 
 
     HttpServer::new(|| {

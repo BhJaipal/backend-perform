@@ -91,11 +91,10 @@ void login(HttpRequest& req, HttpResponse& res) {
 		User user(req.getJsonBody());
 		for (auto usr : users) {
 			if (usr == user) {
-				val["auth"] = usr.token;
 				printf("\e[38;5;%dm%s\e[0m logged in\n", colors[usr.token],
 					   usr.getName().c_str());
 				res.writeJSON(&usr);
-				break;
+				return;
 			}
 		}
 	}

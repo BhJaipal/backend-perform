@@ -29,7 +29,7 @@
 
 ```json
 {
-  "auth": "token-generated"
+  "token": "token-generated"
 }
 ```
 

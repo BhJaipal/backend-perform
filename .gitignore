@@ -6,4 +6,4 @@ a.out
 *.a
 *.o
 *.class
-
+.cache

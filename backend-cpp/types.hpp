@@ -29,7 +29,7 @@ public:
 	Json::Value to_json() override {
 		Json::Value val;
 		val["auth"] = token;
-		return token;
+		return val;
 	}
 };
 
