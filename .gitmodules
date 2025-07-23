@@ -1,6 +1,6 @@
-[submodule "frontend-imgui/imgui"]
-	path = frontend-imgui/imgui
+[submodule "frontend-cpp-imgui/imgui"]
+	path = frontend-cpp-imgui/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "frontend-imgui/cpp-httplib"]
-	path = frontend-imgui/cpp-httplib
+[submodule "frontend-cpp-imgui/cpp-httplib"]
+	path = frontend-cpp-imgui/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib

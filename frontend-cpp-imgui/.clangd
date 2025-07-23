@@ -1,0 +1,11 @@
+CompileFlags:
+  Add:
+    - '-Iimgui'
+    - '-I/usr/include/c++/11'
+    - '-I/usr/include/x86_64-linux-gnu/c++/11'
+    - '-I/usr/include/c++/11/backward'
+    - '-I/usr/include/c++/11/bits'
+    - '-I/usr/include/c++/11/debug'
+    - '-I/usr/include/c++/11/experimental'
+    - '-I/usr/include/jsoncpp'
+    - '-std=c++23'
