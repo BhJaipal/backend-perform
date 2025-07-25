@@ -7,3 +7,5 @@ a.out
 *.o
 *.class
 .cache
+target/
+node_modules/

@@ -182,7 +182,7 @@ function scrollDown() {
 		[chats.getConst.length - currIndex - 1].classList.add("focus");
 }
 
-let loggedIn = new React<boolean>(false);
+let loggedIn = new React<boolean>(true);
 
 loggedIn.onTrue((_) => {
 	// Scroll Up the chats
@@ -293,7 +293,8 @@ loggedIn.onTrue((_) =>
 									prop: { sentByYou: true, type: "text" },
 								});
 								input.value = "";
-								this.disabled = true;
+								get<HTMLButtonElement>("#chat-send")?.disabled =
+									true;
 							},
 						}),
 					],
