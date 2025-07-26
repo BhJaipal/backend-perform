@@ -46,6 +46,10 @@ fn load_msg() -> Vec<Msg> {
     ]
 }
 
+fn capitalize(el: String) -> String {
+    el.as_str().to_uppercase()[0..1].to_string() + &el[1..]
+}
+
 impl Main {
     #[allow(unused)]
     pub fn new() -> Self {
@@ -87,7 +91,7 @@ impl Main {
                     container(
                         container(
                             column!(
-                                text(if el.author != self.name { el.author.as_str().to_uppercase()[0..1].to_string() + &el.author[1..] } else { "You".to_string() }).size(15),
+                                text(if el.author != self.name { capitalize(el.author.clone()) } else { "You".to_string() }).size(15),
                                 text(el.msg.clone()).size(20),
                                 text(format!("{}:{}", el.timestamp.hr, el.timestamp.min)).size(10)
                             )
@@ -95,9 +99,13 @@ impl Main {
                         )
                         .style(|_| {
                             container::Style {
-                                text_color: Some(iced::Color::BLACK),
-                                background: Some(iced::Background::Color(iced::color!(0x94b7f7))),
-                                border: iced::Border { radius: iced::border::Radius::new(10), ..iced::Border::default() },
+                                text_color: Some(iced::color!(0x94b7f7)),
+                                background: Some(iced::Background::Color(iced::color!(0x151533))),
+                                border: iced::Border {
+                                    color: iced::color!(0x94b7f7),
+                                    width: 1.0,
+                                    radius: iced::border::Radius::new(10)
+                                },
                                 ..container::Style::default()
                             }
                         })
@@ -115,6 +123,6 @@ impl Main {
 
 fn main() -> iced::Result {
     iced::application("", Main::update, Main::view).theme(|_| {
-        iced::Theme::CatppuccinMacchiato
+        iced::Theme::TokyoNight
     }).run_with(|| (Main::new(), iced::Task::done(Message::Chat)))
 }
