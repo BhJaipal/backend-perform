@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use magic_crypt::MagicCryptTrait;
-use std::fmt::Display;
+use crate::value::*;
 
 // table NAME encrypted_by_NAME(attr: type, ..)
 // ...
@@ -17,8 +17,7 @@ pub struct DbDataUnparsed {
     pub table_data: HashMap<String, Vec<String>>
 }
 impl DbDataUnparsed {
-
-pub fn parse_tables_desc(self) -> Vec<Table> {
+    pub fn parse_tables_desc(self) -> Vec<Table> {
         self.tables.iter().map(|(k, val)| {
             parse_table_attrs(k.to_string(), val.to_string())
         }).collect()
@@ -66,64 +65,38 @@ pub fn parse_db(mut data: String) -> DbDataUnparsed {
                 table_data.insert(el.0, el.1);
             }
         }
+        
+        let db_data_section = data_split[1].to_string();
+        if !db_data_section.contains("\t") {
+            let name_data_pair = db_data_section.split_once("\n").unwrap();
+            let data_str = name_data_pair.1.trim();
+            let mut table_data_vec = Vec::new();
+            if data_str.contains("\n") {
+                let data: Vec<&str> = data_str.split("\n").collect();
+                data.iter().for_each(|e| table_data_vec.push(e.to_string()));
+            } else {
+                table_data_vec = vec![data_str.to_string()];
+            }
+            table_data.insert(name_data_pair.0.to_string(), table_data_vec);
+        } else {
+            let tables_data: Vec<&str> = db_data_section.split("\t").collect();
+            tables_data.iter().for_each(|db_data_section_table| {
+                let name_data_pair = db_data_section_table.split_once("\n").unwrap();
+                let data_str = name_data_pair.1.trim();
+                let mut table_data_vec = Vec::new();
+                if data_str.contains("\n") {
+                    let data: Vec<&str> = data_str.split("\n").collect();
+                    data.iter().for_each(|e| table_data_vec.push(e.to_string()));
+                } else {
+                    table_data_vec = vec![data_str.to_string()];
+                }
+                table_data.insert(name_data_pair.0.to_string(), table_data_vec);
+            })
+        }
     }
     DbDataUnparsed { tables, table_data }
 }
 
-#[derive(PartialEq, PartialOrd)]
-pub enum Types {
-    U8,
-    U16,
-    U32,
-    I8,
-    I16,
-    I32,
-    U64,
-    String,
-    F32,
-    F64
-}
-
-impl Display for Types {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-
-        let out = match *self {
-            Types::U8 => "u8",
-            Types::U16 => "u16",
-            Types::U32 => "u32",
-            Types::I8 => "i8",
-            Types::I16 => "i16",
-            Types::I32 => "i32",
-            Types::U64 => "u64",
-            Types::String => "str",
-            Types::F32 => "f32",
-            Types::F64 => "f64"
-        }.to_string();
-        write!(f, "{}", out)
-    }
-}
-
-pub struct Table {
-    pub name: String,
-    pub attrs: HashMap<String, Types>
-}
-impl Table {
-    pub fn new(name: &str, attr_tuples: Vec<(&str, Types)>) -> Self {
-        let mut attrs = HashMap::new();
-        for (name, t) in attr_tuples {
-            attrs.insert(name.to_string(), t);
-        }
-        Table { name: name.to_string(), attrs }
-    }
-}
-impl Display for Table {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let out: Vec<String> = self.attrs.iter().map(|(k, v)| {
-            format!("{}=> {}", k, v)
-        }).collect();
-        write!(f, "{} {{{}}}", self.name, out.join(","))
-    }
-}
 
 pub fn parse_table_attrs(name: String, data: String) -> Table {
     let mut attrs = HashMap::new();
@@ -131,7 +104,6 @@ pub fn parse_table_attrs(name: String, data: String) -> Table {
 
     let decrypt = data;
     let decrypted_string = mcrypt.decrypt_base64_to_string(&decrypt).unwrap().trim().to_string();
-    println!("{}", decrypted_string);
     if !decrypted_string.contains(",") {
         let attr_line: Vec<&str> = decrypted_string.split(":").collect();
         let attr_n = attr_line[0].trim().to_string();
@@ -169,16 +141,31 @@ pub fn parse_table_attrs(name: String, data: String) -> Table {
             attrs.insert(attr_n, attr_t);
         });
     }
-    Table { name, attrs }
+    Table { name, attrs, rows: vec![] }
 }
 
 pub fn dump_table(data: Vec<Table>) -> String {
+    let mut db_data = vec![];
     let dumped_desc: Vec<String> = data.iter().map(|table| {
+        if !table.rows.is_empty() {
+            let rows_str_vec: Vec<String> = table.rows.iter().map(|row| {
+                let r: Vec<String> = row.iter().map(|val| val.name.clone() + ":" + &val.value.clone()).collect();
+                r.join(",")
+            }).collect();
+            db_data.push(table.name.as_str().to_owned() + "\n" + rows_str_vec.join("\n").as_str());
+        }
+
         let attrs: Vec<String> = table.attrs.iter().map(|(k, t)| k.clone() + ":" + &t.to_string()).collect();
         let attr_str: String = attrs.join(",");
+
         let mcrypt = magic_crypt::new_magic_crypt!(table.name.clone(), 256);
         let encrypted_string = mcrypt.encrypt_str_to_base64(attr_str);
         "table ".to_owned() + table.name.as_str() + " " + encrypted_string.as_str()
     }).collect();
-    dumped_desc.join("\n").to_string()
+
+    if db_data.is_empty() {
+        dumped_desc.join("\n").to_string()
+    } else {
+        dumped_desc.join("\n").to_string() + "\r\n" + db_data.join("\t").as_str()
+    }
 }
