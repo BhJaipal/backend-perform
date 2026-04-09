@@ -13,13 +13,13 @@ pub enum Message {
     NameUpdate(String),
     PassUpdate(String),
 }
-#[derive(Clone)]
+#[derive(Clone, serde::Deserialize)]
 struct Time {
     pub hr: u8,
     pub min: u8
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Deserialize)]
 struct Msg {
     pub author: String,
     pub msg: String,
@@ -33,6 +33,9 @@ impl Msg {
             timestamp: Time { hr, min }
         }
     }
+    pub fn str(self, token: String) -> String {
+        format!("{{\"msg\": \"{}\", \"author\":\"{}\", \"token\": \"{}\", \"timestamp\": {{\"hr\": {}, \"min\": {}}}", self.msg, self.author, token, self.timestamp.hr, self.timestamp.min)
+    }
 }
 
 #[derive(Default)]
@@ -42,15 +45,6 @@ struct Main {
     logged_in: bool,
     chats: Vec<Msg>,
     input: String
-}
-
-fn load_msg() -> Vec<Msg> {
-    vec![
-        Msg::new("jaipal", "nyam", 11, 18),
-        Msg::new("moe", "nyam", 11, 53),
-        Msg::new("moe", "nya", 11, 53),
-        Msg::new("jaipal", "moe", 11, 18),
-    ]
 }
 
 fn capitalize(el: String) -> String {
@@ -66,11 +60,64 @@ impl Main {
     pub fn new() -> Self {
         Self {
             name: String::new(),
-            pass: String::new(),
+            pass: String::from("dffe86797a27a6cc1e7d4f3b7628783bc1292f310eeb352148f62a993c30c027"),
             logged_in: false,
-            chats: load_msg(),
+            chats: Vec::new(),
             input: String::new()
         }
+    }
+    fn json(&self) -> String {
+        format!("{{\"name\":\"{}\",\"password\":\"{}\"}}", self.name, self.pass)
+    }
+    fn home_json(&self) -> String {
+        format!("{{\"name\":\"{}\",\"token\":\"{}\"}}", self.name, self.pass)
+    }
+    fn login(&mut self) -> Result<(), String> {
+        let req = ureq::post("http://localhost:8000/login");
+        let mut res = req.content_type("application/json")
+            .send(self.json()).unwrap().into_body();
+        let out_str = res.read_to_string().unwrap();
+        let val: serde_json::Value = serde_json::from_str(out_str.as_str()).unwrap();
+        if val["token"] != serde_json::Value::Null {
+            self.pass = val["token"].to_string();
+            return Ok(())
+        }
+        Err("Failed to login".to_string())
+    }
+    fn home_msg(&mut self) -> Result<(), String> {
+        let req = ureq::post("http://localhost:8000/");
+        let mut res = req.content_type("application/json")
+            .send(self.home_json()).unwrap().into_body();
+
+        let out_str = res.read_to_string().unwrap();
+        let val: serde_json::Value = serde_json::from_str(out_str.as_str()).unwrap();
+        if val["output"] == serde_json::Value::Null {
+            self.chats.push(Msg::new(
+                    val["msg"].as_str().unwrap(),
+                    val["author"].as_str().unwrap(),
+                    val["hr"].as_u64().unwrap() as u8,
+                    val["min"].as_u64().unwrap() as u8));
+            return Ok(())
+        }
+        Err("Failed to get message".to_string())
+    }
+    fn send_msg(&self) -> Result<(), String> {
+        let req = ureq::post("http://localhost:8000/send-msg");
+        let fulltime = chrono::offset::Local::now().to_rfc3339();
+        let time_str = fulltime.split("T").last().unwrap();
+        let time_iter = time_str.splitn(2, ":").filter(|val| val.parse::<u8>().is_ok());
+        let time = time_iter.map(|el| el.parse::<u8>().unwrap()).collect::<Vec<u8>>();
+
+        let msg = Msg::new(&self.name, &self.input, *time.first().unwrap(), *time.last().unwrap());
+        let mut res = req.content_type("application/json")
+            .send(msg.str(self.pass.clone())).unwrap().into_body();
+
+        let out_str = res.read_to_string().unwrap();
+        let val: serde_json::Value = serde_json::from_str(out_str.as_str()).unwrap();
+        if val[""] != serde_json::Value::Null {
+            return Ok(())
+        }
+        Err("Failed to login".to_string())
     }
     pub fn update(&mut self, page: Message) {
         match page {
@@ -79,7 +126,10 @@ impl Main {
             Message::Chat => {
                 if self.name.trim().is_empty() { return; }
                 if self.pass.trim().is_empty() { return; }
-                self.logged_in = true
+                if self.login().is_ok() {
+                    self.logged_in = true;
+                    self.home_msg().unwrap()
+                }
             },
             Message::Login => self.logged_in = false,
             Message::ChatInput(input) => self.input = input,
@@ -100,6 +150,7 @@ impl Main {
                     }
                 });
                 self.input = String::new();
+                self.send_msg().unwrap()
             }
         }
     }

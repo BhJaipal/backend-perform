@@ -24,8 +24,7 @@ void Server::connect_socket() {
 	server_addr.sin_port = htons(std::stoi(port));
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (bind(socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) <
-		0) {
+	if (bind(socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
 		std::cerr << "Failed to bind server socket\n";
 		exit(1);
 	}
@@ -37,9 +36,8 @@ void Server::connect_socket() {
 }
 void Server::start() {
 	struct sockaddr_in client_addr;
-	socklen_t client_addr_size;
 	this->connect_socket();
-	client_addr_size = sizeof(struct sockaddr_in);
+	socklen_t client_addr_size = sizeof(struct sockaddr_in);
 
 	while (1) {
 		client_socket_fd = accept(socket_fd, (struct sockaddr*)&client_addr,
